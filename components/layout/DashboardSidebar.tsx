@@ -1,14 +1,14 @@
-// components/layout/DashboardSidebar.tsx
 'use client';
 
-import { Menu, X, Home, BarChart3, TrendingUp, CreditCard, MessageSquare } from 'lucide-react';
+import { Menu, X, Home, BarChart3, TrendingUp, CreditCard, MessageSquare, FileText } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 const menuItems = [
   { id: '/dashboard', label: 'Dashboard', icon: Home },
   { id: '/dashboard/cashflow', label: 'Cash Flow', icon: BarChart3 },
-  { id: '/dashboard/investment', label: 'Investments', icon: TrendingUp },
+  { id: '/dashboard/investments', label: 'Investments', icon: TrendingUp },
   { id: '/dashboard/loans', label: 'Loans', icon: CreditCard },
+  { id: '/dashboard/receipts', label: 'Receipts', icon: FileText },
   { id: '/dashboard/advisor', label: 'AI Advisor', icon: MessageSquare },
 ];
 
@@ -26,34 +26,28 @@ export default function DashboardSidebar({ isMobileOpen, onClose }: { isMobileOp
       )}
 
       <div
-        className={`
-          fixed lg:static inset-y-0 left-0 z-50
-          w-64 bg-white shadow-lg border-r h-full
-          transform transition-transform duration-300 ease-in-out
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white shadow-lg border-r h-full transform transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         <div className="p-6 border-b flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">ArthSahay</h2>
+            <h2 className="text-xl font-bold text-gray-800">LUMEN</h2>
             <p className="text-sm text-gray-600">Financial Dashboard</p>
           </div>
-          <button onClick={onClose} className="lg:hidden">
-            <X className="h-6 w-6" />
-          </button>
         </div>
 
         <nav className="p-4">
           <ul className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.id;
+              const isActive = pathname === item.id; // Define isActive here
               return (
                 <li key={item.id}>
                   <button
                     onClick={() => {
                       router.push(item.id);
-                      onClose();
+                      if (typeof onClose === 'function') {
+                        onClose();
+                      }
                     }}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive

@@ -1,5 +1,8 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { LogOut, ArrowLeft } from 'lucide-react'
 
 interface Message {
   id: string
@@ -8,21 +11,24 @@ interface Message {
   timestamp: Date
 }
 
-interface AdvisorResponse {
-  response: string
-  suggestions: string[]
-}
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND || 'http://localhost:8000'
 
 export default function AdvisorPage() {
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [connectionError, setConnectionError] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [isInitialized, setIsInitialized] = useState(false)
+  const [netWorth, setNetWorth] = useState<number>(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('mcp_session')
+    }
+    router.push('/')
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -32,10 +38,8 @@ export default function AdvisorPage() {
     scrollToBottom()
   }, [messages])
 
-  // Initialize session and load welcome message
   useEffect(() => {
     const initializeAdvisor = async () => {
-      // Get session from localStorage
       if (typeof window !== 'undefined') {
         const savedSession = localStorage.getItem('mcp_session')
         if (savedSession) {
@@ -43,39 +47,37 @@ export default function AdvisorPage() {
           if (parsed.sessionId && parsed.isLoggedIn) {
             setSessionId(parsed.sessionId)
             
-            // Fetch financial data for context
             try {
               const response = await fetch(`${API_BASE_URL}/api/financial/summary/1?session_id=${parsed.sessionId}`)
               const data = await response.json()
               
-              const welcomeMessage: Message = {
+              if (data.mcp_data_available) {
+                setNetWorth(data.summary.net_worth)
+                
+                const welcomeMessage: Message = {
+                  id: '1',
+                  text: `Hello! I'm your AI financial advisor with access to your real financial data:\n\n• Net Worth: ₹${data.summary.net_worth.toLocaleString('en-IN')}\n• Total Assets: ₹${data.assets?.reduce((s: number, a: any) => s + a.value, 0).toLocaleString('en-IN')}\n• Total Liabilities: ₹${data.liabilities?.reduce((s: number, l: any) => s + l.value, 0).toLocaleString('en-IN')}\n\nHow can I help you optimize your finances today?`,
+                  sender: 'bot',
+                  timestamp: new Date()
+                }
+                setMessages([welcomeMessage])
+              } else {
+                throw new Error('No MCP data')
+              }
+            } catch (error) {
+              const errorMsg: Message = {
                 id: '1',
-                text: `Hello! I'm your AI financial advisor. I have access to your complete financial data:\n\n• Net Worth: ${formatCurrency(data.summary.net_worth)}\n• Monthly Income: ${formatCurrency(data.summary.total_income)}\n• Monthly Expenses: ${formatCurrency(data.summary.total_expenses)}\n• Savings Rate: ${data.summary.savings_rate}%\n\nHow can I help you optimize your finances today?`,
+                text: "Please ensure your accounts are connected from the dashboard.",
                 sender: 'bot',
                 timestamp: new Date()
               }
-              setMessages([welcomeMessage])
-              setIsInitialized(true)
-            } catch (error) {
-              console.error('Failed to fetch financial data:', error)
+              setMessages([errorMsg])
             }
           } else {
-            const noSessionMessage: Message = {
-              id: '1',
-              text: "Please connect your financial accounts from the dashboard first to access personalized advice.",
-              sender: 'bot',
-              timestamp: new Date()
-            }
-            setMessages([noSessionMessage])
+            router.push('/')
           }
         } else {
-          const noSessionMessage: Message = {
-            id: '1',
-            text: "Welcome! Please connect your financial accounts from the dashboard to get started with personalized advice.",
-            sender: 'bot',
-            timestamp: new Date()
-          }
-          setMessages([noSessionMessage])
+          router.push('/')
         }
       }
     }
@@ -84,28 +86,10 @@ export default function AdvisorPage() {
     checkBackendConnection()
   }, [])
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount)
-  }
-
   const checkBackendConnection = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
-      
-      if (response.ok) {
-        setConnectionError(false)
-      } else {
-        setConnectionError(true)
-      }
+      const response = await fetch(`${API_BASE_URL}/health`)
+      setConnectionError(!response.ok)
     } catch (error) {
       setConnectionError(true)
     }
@@ -124,28 +108,21 @@ export default function AdvisorPage() {
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
-    setConnectionError(false)
 
     try {
-      const requestBody = {
-        message: input,
-        user_id: 1,
-        session_id: sessionId
-      }
-      
       const response = await fetch(`${API_BASE_URL}/api/advisor/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: input,
+          user_id: 1,
+          session_id: sessionId
+        })
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
 
-      const data: AdvisorResponse = await response.json()
+      const data = await response.json()
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -158,10 +135,9 @@ export default function AdvisorPage() {
       
     } catch (error) {
       setConnectionError(true)
-      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: `I'm having trouble connecting to the financial advisor service. Please ensure the backend server is running and try again.`,
+        text: `Connection error. Please try again.`,
         sender: 'bot',
         timestamp: new Date()
       }
@@ -169,13 +145,6 @@ export default function AdvisorPage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleQuickQuestion = (question: string) => {
-    setInput(question)
-    setTimeout(() => {
-      handleSend()
-    }, 100)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -191,51 +160,39 @@ export default function AdvisorPage() {
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
           <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Financial Advisor</h1>
-              <p className="text-gray-600">Powered by Groq AI with complete financial context</p>
-            </div>
-            <div className="text-right">
-              <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                connectionError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-              }`}>
-                <span className={`w-2 h-2 rounded-full mr-2 ${
-                  connectionError ? 'bg-red-500' : 'bg-green-500'
-                }`}></span>
-                {connectionError ? 'Backend Offline' : 'Backend Online'}
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Financial Advisor</h1>
+                <p className="text-gray-600">Powered by real-time financial data</p>
               </div>
             </div>
+            <Button onClick={handleLogout} variant="destructive" size="sm">
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
-          
-          {connectionError && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm font-medium">
-                ⚠️ Cannot connect to backend at {API_BASE_URL}
-              </p>
-              <p className="text-red-600 text-xs mt-1">
-                Make sure the backend server is running on port 8000
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Quick Questions */}
-        {sessionId && (
+        {sessionId && netWorth > 0 && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Questions:</h3>
             <div className="flex flex-wrap gap-2">
               {[
-                "How can I save more money?",
-                "Analyze my investment portfolio",
-                "Review my spending patterns",
-                "Budgeting advice",
-                "Tax saving tips"
+                "Analyze my net worth",
+                "Review my assets allocation",
+                "Investment recommendations",
+                "Debt management strategy"
               ].map((question, index) => (
                 <button
                   key={index}
-                  onClick={() => handleQuickQuestion(question)}
-                  disabled={isLoading || connectionError}
-                  className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => { setInput(question); setTimeout(handleSend, 100); }}
+                  disabled={isLoading}
+                  className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50"
                 >
                   {question}
                 </button>
@@ -277,7 +234,7 @@ export default function AdvisorPage() {
                       <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                       <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="text-sm text-gray-600">Analyzing your finances...</span>
+                    <span className="text-sm text-gray-600">Analyzing...</span>
                   </div>
                 </div>
               </div>
@@ -294,14 +251,14 @@ export default function AdvisorPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me about savings, investments, loans, or budgeting..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-              disabled={isLoading || connectionError || !sessionId}
+              placeholder="Ask about your finances..."
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              disabled={isLoading || !sessionId}
             />
             <button
               onClick={handleSend}
-              disabled={isLoading || !input.trim() || connectionError || !sessionId}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-20 flex items-center justify-center"
+              disabled={isLoading || !input.trim() || !sessionId}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 min-w-20 flex items-center justify-center"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -309,14 +266,6 @@ export default function AdvisorPage() {
                 'Send'
               )}
             </button>
-          </div>
-          <div className="flex justify-between items-center mt-2">
-            <p className="text-xs text-gray-500">
-              💡 {sessionId ? 'I have access to your complete financial data' : 'Connect your accounts to get personalized advice'}
-            </p>
-            <p className="text-xs text-gray-400">
-              Backend: {API_BASE_URL}
-            </p>
           </div>
         </div>
       </div>

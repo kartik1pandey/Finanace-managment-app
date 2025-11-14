@@ -5,6 +5,25 @@ from datetime import datetime
 import uvicorn
 import httpx
 from typing import Optional
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import yfinance as yf
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import ta  # technical-analysis library
+from groq import Groq
+import os
+
+# Install required packages:
+# pip install yfinance ta-lib pandas-ta
+
+class StockAnalysisRequest(BaseModel):
+    symbol: str
+    quote: dict
+    technicals: dict
+    fundamentals: dict
+
 
 # Import services
 try:
@@ -425,6 +444,307 @@ def get_stock_analysis(symbol: str):
 def get_market_overview():
     """Get market overview"""
     return investment_service.get_market_overview()
+
+@app.get("/api/investments/stock/{symbol}")
+async def get_stock_data(symbol: str):
+    """
+    Fetch real-time stock data using yfinance
+    Free and reliable - no API key needed
+    """
+    try:
+        # Create ticker object
+        ticker = yf.Ticker(symbol)
+        
+        # Get current quote
+        info = ticker.info
+        hist = ticker.history(period="1y")
+        
+        if hist.empty:
+            raise HTTPException(status_code=404, detail=f"No data found for {symbol}")
+        
+        # Current price data
+        current_price = hist['Close'].iloc[-1]
+        previous_close = hist['Close'].iloc[-2]
+        change = current_price - previous_close
+        change_percent = (change / previous_close) * 100
+        
+        quote = {
+            "symbol": symbol,
+            "price": round(current_price, 2),
+            "change": round(change, 2),
+            "changePercent": round(change_percent, 2),
+            "volume": int(hist['Volume'].iloc[-1]),
+            "high": round(hist['High'].iloc[-1], 2),
+            "low": round(hist['Low'].iloc[-1], 2),
+            "open": round(hist['Open'].iloc[-1], 2),
+            "previousClose": round(previous_close, 2),
+            "marketCap": format_market_cap(info.get('marketCap', 0)),
+            "pe": str(round(info.get('trailingPE', 0), 2)) if info.get('trailingPE') else "N/A",
+            "eps": str(round(info.get('trailingEps', 0), 2)) if info.get('trailingEps') else "N/A",
+            "dividendYield": f"{round(info.get('dividendYield', 0) * 100, 2)}%" if info.get('dividendYield') else "N/A",
+            "beta": str(round(info.get('beta', 1.0), 2)) if info.get('beta') else "N/A"
+        }
+        
+        # Calculate technical indicators
+        technicals = calculate_technical_indicators(hist)
+        
+        # Prepare historical data for chart
+        historical = prepare_chart_data(hist, technicals)
+        
+        return {
+            "quote": quote,
+            "technicals": technicals,
+            "historical": historical,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching stock data: {str(e)}")
+
+def calculate_technical_indicators(df):
+    """Calculate technical indicators using pandas-ta"""
+    try:
+        # Make a copy to avoid modifying original
+        data = df.copy()
+        
+        # RSI
+        rsi = ta.momentum.RSIIndicator(data['Close'], window=14)
+        current_rsi = rsi.rsi().iloc[-1]
+        
+        # MACD
+        macd = ta.trend.MACD(data['Close'])
+        current_macd = macd.macd().iloc[-1]
+        current_signal = macd.macd_signal().iloc[-1]
+        
+        # Moving Averages
+        sma_50 = data['Close'].rolling(window=50).mean().iloc[-1]
+        sma_200 = data['Close'].rolling(window=200).mean().iloc[-1]
+        
+        # Determine signal
+        signal_type = "neutral"
+        signal_strength = "Weak"
+        
+        # RSI signals
+        if current_rsi < 30:
+            signal_type = "buy"
+            signal_strength = "Strong" if current_rsi < 25 else "Medium"
+        elif current_rsi > 70:
+            signal_type = "sell"
+            signal_strength = "Strong" if current_rsi > 75 else "Medium"
+        
+        # MACD crossover
+        prev_macd = macd.macd().iloc[-2]
+        prev_signal = macd.macd_signal().iloc[-2]
+        
+        if current_macd > current_signal and prev_macd <= prev_signal:
+            signal_type = "buy"
+            signal_strength = "Strong"
+        elif current_macd < current_signal and prev_macd >= prev_signal:
+            signal_type = "sell"
+            signal_strength = "Strong"
+        
+        # Moving average crossover
+        if sma_50 > sma_200:
+            if signal_type == "neutral":
+                signal_type = "buy"
+                signal_strength = "Medium"
+        elif sma_50 < sma_200:
+            if signal_type == "neutral":
+                signal_type = "sell"
+                signal_strength = "Medium"
+        
+        return {
+            "rsi": round(current_rsi, 2),
+            "macd": round(current_macd, 4),
+            "signal": round(current_signal, 4),
+            "sma50": round(sma_50, 2),
+            "sma200": round(sma_200, 2),
+            "signal_type": signal_type,
+            "signal_strength": signal_strength
+        }
+        
+    except Exception as e:
+        print(f"Error calculating indicators: {e}")
+        return {
+            "rsi": 50,
+            "macd": 0,
+            "signal": 0,
+            "sma50": 0,
+            "sma200": 0,
+            "signal_type": "neutral",
+            "signal_strength": "N/A"
+        }
+
+def prepare_chart_data(df, technicals):
+    """Prepare historical data for charting"""
+    # Get last 90 days
+    data = df.tail(90).copy()
+    
+    # Calculate indicators for chart
+    data['SMA50'] = data['Close'].rolling(window=50).mean()
+    data['SMA200'] = data['Close'].rolling(window=200).mean()
+    
+    # RSI for chart
+    rsi_indicator = ta.momentum.RSIIndicator(data['Close'], window=14)
+    data['RSI'] = rsi_indicator.rsi()
+    
+    # Format for frontend
+    chart_data = []
+    for idx, row in data.iterrows():
+        chart_data.append({
+            "date": idx.strftime("%Y-%m-%d"),
+            "close": round(row['Close'], 2),
+            "volume": int(row['Volume']),
+            "sma50": round(row['SMA50'], 2) if not pd.isna(row['SMA50']) else None,
+            "sma200": round(row['SMA200'], 2) if not pd.isna(row['SMA200']) else None,
+            "rsi": round(row['RSI'], 2) if not pd.isna(row['RSI']) else None
+        })
+    
+    return chart_data
+
+def format_market_cap(market_cap):
+    """Format market cap to readable string"""
+    if market_cap >= 1_000_000_000_000:
+        return f"${market_cap / 1_000_000_000_000:.2f}T"
+    elif market_cap >= 1_000_000_000:
+        return f"${market_cap / 1_000_000_000:.2f}B"
+    elif market_cap >= 1_000_000:
+        return f"${market_cap / 1_000_000:.2f}M"
+    else:
+        return f"${market_cap:,.0f}"
+
+@app.post("/api/investments/analyze")
+async def analyze_stock(request: StockAnalysisRequest):
+    """
+    Generate AI analysis using Groq
+    """
+    try:
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        # Construct comprehensive prompt
+        prompt = f"""Analyze {request.symbol} stock with the following data:
+
+Current Price: ${request.quote['price']}
+Change: {request.quote['change']} ({request.quote['changePercent']}%)
+Volume: {request.quote['volume']:,}
+
+Technical Indicators:
+- RSI: {request.technicals['rsi']} ({get_rsi_interpretation(request.technicals['rsi'])})
+- MACD: {request.technicals['macd']} (Signal: {request.technicals['signal']})
+- SMA 50: ${request.technicals['sma50']}
+- SMA 200: ${request.technicals['sma200']}
+- Current Signal: {request.technicals['signal_type'].upper()} ({request.technicals['signal_strength']})
+
+Fundamentals:
+- P/E Ratio: {request.fundamentals['pe']}
+- EPS: {request.fundamentals['eps']}
+- Market Cap: {request.fundamentals['marketCap']}
+
+Provide a comprehensive analysis including:
+1. Technical Analysis Summary
+2. Trend Analysis (short-term and long-term)
+3. Key Support and Resistance Levels
+4. Entry and Exit Strategies
+5. Risk Assessment
+6. Price Targets (conservative, moderate, aggressive)
+7. Investment Recommendation (Buy/Hold/Sell with reasoning)
+
+Be specific, actionable, and concise. Focus on practical trading insights."""
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1000,
+            temperature=0.7
+        )
+        
+        return {
+            "analysis": response.choices[0].message.content,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating analysis: {str(e)}")
+
+def get_rsi_interpretation(rsi):
+    """Get RSI interpretation"""
+    if rsi < 30:
+        return "Oversold - Potential Buy Signal"
+    elif rsi > 70:
+        return "Overbought - Potential Sell Signal"
+    else:
+        return "Neutral"
+
+# Additional endpoint for portfolio optimization
+@app.post("/api/investments/optimize-portfolio")
+async def optimize_portfolio(holdings: dict):
+    """
+    Optimize portfolio allocation using Modern Portfolio Theory
+    """
+    try:
+        tickers = list(holdings.keys())
+        weights = np.array(list(holdings.values()))
+        
+        # Fetch historical data
+        data = yf.download(tickers, period="1y")['Close']
+        
+        # Calculate returns
+        returns = data.pct_change().dropna()
+        
+        # Calculate portfolio metrics
+        portfolio_return = (returns.mean() * weights).sum() * 252
+        portfolio_volatility = np.sqrt(np.dot(weights.T, np.dot(returns.cov() * 252, weights)))
+        sharpe_ratio = portfolio_return / portfolio_volatility
+        
+        # Value at Risk (VaR) at 95% confidence
+        var_95 = np.percentile(returns.dot(weights), 5) * np.sqrt(252)
+        
+        # Diversification score
+        correlation_matrix = returns.corr()
+        avg_correlation = correlation_matrix.values[np.triu_indices_from(correlation_matrix.values, k=1)].mean()
+        diversification_score = 1 - avg_correlation
+        
+        # Generate AI recommendations
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        prompt = f"""Analyze this portfolio:
+Holdings: {holdings}
+
+Metrics:
+- Expected Annual Return: {portfolio_return*100:.2f}%
+- Volatility (Risk): {portfolio_volatility*100:.2f}%
+- Sharpe Ratio: {sharpe_ratio:.2f}
+- Value at Risk (95%): {var_95*100:.2f}%
+- Diversification Score: {diversification_score:.2f}
+
+Provide:
+1. Portfolio Health Assessment
+2. Risk Analysis
+3. Diversification Recommendations
+4. Rebalancing Suggestions
+5. Specific Actions to Improve Returns
+"""
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=800
+        )
+        
+        return {
+            "metrics": {
+                "expected_return": round(portfolio_return * 100, 2),
+                "volatility": round(portfolio_volatility * 100, 2),
+                "sharpe_ratio": round(sharpe_ratio, 2),
+                "var_95": round(var_95 * 100, 2),
+                "diversification_score": round(diversification_score, 2)
+            },
+            "recommendations": response.choices[0].message.content
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error optimizing portfolio: {str(e)}")
+
 
 # ============= HEALTH CHECK =============
 
