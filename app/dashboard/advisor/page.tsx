@@ -13,21 +13,15 @@ interface AdvisorResponse {
   suggestions: string[]
 }
 
-// API URL configuration - Fixed to ensure correct URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND || 'http://localhost:8000'
 
 export default function AdvisorPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: "Hello! I'm your AI financial advisor. I have access to your complete financial data including:\n\n• Net Worth: ₹12,50,000\n• Monthly Income: ₹95,000\n• Investment Portfolio: ₹8,50,000\n• Loan Portfolio: ₹5,00,000\n\nHow can I help you optimize your finances today?",
-      sender: 'bot',
-      timestamp: new Date()
-    }
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [connectionError, setConnectionError] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -38,14 +32,68 @@ export default function AdvisorPage() {
     scrollToBottom()
   }, [messages])
 
-  // Test backend connection on component mount
+  // Initialize session and load welcome message
   useEffect(() => {
+    const initializeAdvisor = async () => {
+      // Get session from localStorage
+      if (typeof window !== 'undefined') {
+        const savedSession = localStorage.getItem('mcp_session')
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession)
+          if (parsed.sessionId && parsed.isLoggedIn) {
+            setSessionId(parsed.sessionId)
+            
+            // Fetch financial data for context
+            try {
+              const response = await fetch(`${API_BASE_URL}/api/financial/summary/1?session_id=${parsed.sessionId}`)
+              const data = await response.json()
+              
+              const welcomeMessage: Message = {
+                id: '1',
+                text: `Hello! I'm your AI financial advisor. I have access to your complete financial data:\n\n• Net Worth: ${formatCurrency(data.summary.net_worth)}\n• Monthly Income: ${formatCurrency(data.summary.total_income)}\n• Monthly Expenses: ${formatCurrency(data.summary.total_expenses)}\n• Savings Rate: ${data.summary.savings_rate}%\n\nHow can I help you optimize your finances today?`,
+                sender: 'bot',
+                timestamp: new Date()
+              }
+              setMessages([welcomeMessage])
+              setIsInitialized(true)
+            } catch (error) {
+              console.error('Failed to fetch financial data:', error)
+            }
+          } else {
+            const noSessionMessage: Message = {
+              id: '1',
+              text: "Please connect your financial accounts from the dashboard first to access personalized advice.",
+              sender: 'bot',
+              timestamp: new Date()
+            }
+            setMessages([noSessionMessage])
+          }
+        } else {
+          const noSessionMessage: Message = {
+            id: '1',
+            text: "Welcome! Please connect your financial accounts from the dashboard to get started with personalized advice.",
+            sender: 'bot',
+            timestamp: new Date()
+          }
+          setMessages([noSessionMessage])
+        }
+      }
+    }
+
+    initializeAdvisor()
     checkBackendConnection()
   }, [])
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount)
+  }
+
   const checkBackendConnection = async () => {
     try {
-      console.log(`🔍 Checking backend connection at: ${API_BASE_URL}/health`)
       const response = await fetch(`${API_BASE_URL}/health`, {
         method: 'GET',
         headers: {
@@ -54,15 +102,11 @@ export default function AdvisorPage() {
       })
       
       if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Backend connection successful:', data)
         setConnectionError(false)
       } else {
-        console.error('❌ Backend health check failed:', response.status)
         setConnectionError(true)
       }
     } catch (error) {
-      console.error('❌ Backend connection failed:', error)
       setConnectionError(true)
     }
   }
@@ -85,11 +129,9 @@ export default function AdvisorPage() {
     try {
       const requestBody = {
         message: input,
-        user_id: 1
+        user_id: 1,
+        session_id: sessionId
       }
-
-      console.log('📤 Sending message to:', `${API_BASE_URL}/api/advisor/chat`)
-      console.log('Request body:', requestBody)
       
       const response = await fetch(`${API_BASE_URL}/api/advisor/chat`, {
         method: 'POST',
@@ -99,16 +141,11 @@ export default function AdvisorPage() {
         body: JSON.stringify(requestBody)
       })
 
-      console.log('📥 Response status:', response.status)
-
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ Server response error:', errorText)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data: AdvisorResponse = await response.json()
-      console.log('✅ Received response:', data)
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -120,24 +157,11 @@ export default function AdvisorPage() {
       setMessages(prev => [...prev, botMessage])
       
     } catch (error) {
-      console.error('❌ Error sending message:', error)
       setConnectionError(true)
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: `I'm having trouble connecting to the financial advisor service. 
-
-Error Details: ${error instanceof Error ? error.message : 'Unknown error'}
-
-Please ensure:
-1. The backend server is running on ${API_BASE_URL}
-2. Check the backend terminal for any errors
-3. Refresh the page and try again
-
-You can also try these troubleshooting steps:
-• Run the backend with: python main.py
-• Check if port 8000 is available
-• Verify CORS settings in the backend`,
+        text: `I'm having trouble connecting to the financial advisor service. Please ensure the backend server is running and try again.`,
         sender: 'bot',
         timestamp: new Date()
       }
@@ -149,11 +173,8 @@ You can also try these troubleshooting steps:
 
   const handleQuickQuestion = (question: string) => {
     setInput(question)
-    // Auto-send after a short delay
     setTimeout(() => {
-      if (input === question) { // Ensure input hasn't changed
-        handleSend()
-      }
+      handleSend()
     }, 100)
   }
 
@@ -199,27 +220,29 @@ You can also try these troubleshooting steps:
         </div>
 
         {/* Quick Questions */}
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Questions:</h3>
-          <div className="flex flex-wrap gap-2">
-            {[
-              "How can I save more money?",
-              "Analyze my investment portfolio",
-              "Help with my loans",
-              "Budgeting advice",
-              "Retirement planning"
-            ].map((question, index) => (
-              <button
-                key={index}
-                onClick={() => handleQuickQuestion(question)}
-                disabled={isLoading || connectionError}
-                className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {question}
-              </button>
-            ))}
+        {sessionId && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Questions:</h3>
+            <div className="flex flex-wrap gap-2">
+              {[
+                "How can I save more money?",
+                "Analyze my investment portfolio",
+                "Review my spending patterns",
+                "Budgeting advice",
+                "Tax saving tips"
+              ].map((question, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleQuickQuestion(question)}
+                  disabled={isLoading || connectionError}
+                  className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Chat Container */}
         <div className="flex-1 bg-white rounded-lg shadow-sm border p-4 mb-4 overflow-y-auto flex flex-col">
@@ -273,11 +296,11 @@ You can also try these troubleshooting steps:
               onKeyPress={handleKeyPress}
               placeholder="Ask me about savings, investments, loans, or budgeting..."
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-              disabled={isLoading || connectionError}
+              disabled={isLoading || connectionError || !sessionId}
             />
             <button
               onClick={handleSend}
-              disabled={isLoading || !input.trim() || connectionError}
+              disabled={isLoading || !input.trim() || connectionError || !sessionId}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-20 flex items-center justify-center"
             >
               {isLoading ? (
@@ -289,7 +312,7 @@ You can also try these troubleshooting steps:
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-xs text-gray-500">
-              💡 I have access to your complete financial data including net worth, cash flow, investments, and loans
+              💡 {sessionId ? 'I have access to your complete financial data' : 'Connect your accounts to get personalized advice'}
             </p>
             <p className="text-xs text-gray-400">
               Backend: {API_BASE_URL}

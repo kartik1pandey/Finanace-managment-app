@@ -4,41 +4,62 @@ import LoansOverview from '@/components/loans/LoansOverview'
 import LoansList from '@/components/loans/LoansList'
 import EMICalculator from '@/components/loans/EMICalculator'
 import PrepaymentAnalysis from '@/components/loans/PrepaymentAnalysis'
-import DebtConsolidation from '@/components/loans/DebtConsolidation'
-import RepaymentStrategy from '@/components/loans/RepaymentStrategy'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND || 'http://localhost:8000'
 
 export default function LoansPage() {
   const [loansData, setLoansData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedLoan, setSelectedLoan] = useState(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        
-        // Fetch loans summary
-        const loansResponse = await fetch('http://localhost:8000/api/loans/summary/1')
-        if (loansResponse.ok) {
-          const loansData = await loansResponse.json()
-          setLoansData(loansData)
-          
-          // Set first loan as selected by default
-          if (loansData.active_loans && loansData.active_loans.length > 0) {
-            setSelectedLoan(loansData.active_loans[0])
-          }
+    if (typeof window !== 'undefined') {
+      const savedSession = localStorage.getItem('mcp_session')
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession)
+        if (parsed.sessionId && parsed.isLoggedIn) {
+          setSessionId(parsed.sessionId)
+          fetchData(parsed.sessionId)
+        } else {
+          setError('Please connect your financial accounts from the dashboard')
+          setLoading(false)
         }
-
-      } catch (error) {
-        console.error('Error fetching loans data:', error)
-      } finally {
+      } else {
+        setError('No session found. Please connect your accounts from the dashboard')
         setLoading(false)
       }
     }
-
-    fetchData()
   }, [])
+
+  const fetchData = async (sid: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Fetch loans summary - Note: This uses static data from backend
+      // Update this endpoint if you have MCP loan data
+      const loansResponse = await fetch(`${API_BASE_URL}/api/loans/summary/1`)
+      if (loansResponse.ok) {
+        const loansData = await loansResponse.json()
+        setLoansData(loansData)
+        
+        if (loansData.active_loans && loansData.active_loans.length > 0) {
+          setSelectedLoan(loansData.active_loans[0])
+        }
+      }
+
+    } catch (error) {
+      console.error('Error fetching loans data:', error)
+      setError('Failed to fetch loans data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -51,6 +72,17 @@ export default function LoansPage() {
             ))}
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     )
   }
@@ -71,7 +103,7 @@ export default function LoansPage() {
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          {['overview', 'myloans', 'calculator', 'prepayment', 'consolidation', 'strategy'].map((tab) => (
+          {['overview', 'myloans', 'calculator', 'prepayment'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -84,9 +116,7 @@ export default function LoansPage() {
               {tab === 'overview' ? 'Dashboard' : 
                tab === 'myloans' ? 'My Loans' :
                tab === 'calculator' ? 'EMI Calculator' :
-               tab === 'prepayment' ? 'Prepayment' :
-               tab === 'consolidation' ? 'Consolidation' :
-               tab === 'strategy' ? 'Strategy' : tab}
+               tab === 'prepayment' ? 'Prepayment' : tab}
             </button>
           ))}
         </nav>
@@ -112,14 +142,6 @@ export default function LoansPage() {
 
         {activeTab === 'prepayment' && selectedLoan && (
           <PrepaymentAnalysis loan={selectedLoan} />
-        )}
-
-        {activeTab === 'consolidation' && loansData && (
-          <DebtConsolidation data={loansData} />
-        )}
-
-        {activeTab === 'strategy' && loansData && (
-          <RepaymentStrategy data={loansData} />
         )}
       </div>
     </div>

@@ -6,6 +6,10 @@ import BudgetAnalysis from '@/components/cashflow/BudgetAnalysis'
 import TransactionHistory from '@/components/cashflow/TransactionHistory'
 import SpendingInsights from '@/components/cashflow/SpendingInsights'
 import CashFlowPredictions from '@/components/cashflow/CashFlowPredictions'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND || 'http://localhost:8000'
 
 export default function CashFlowPage() {
   const [analysisData, setAnalysisData] = useState(null)
@@ -13,42 +17,58 @@ export default function CashFlowPage() {
   const [predictionsData, setPredictionsData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        
-        // Fetch cash flow analysis
-        const analysisResponse = await fetch('http://localhost:8000/api/cashflow/analysis/1')
-        if (analysisResponse.ok) {
-          const analysisData = await analysisResponse.json()
-          setAnalysisData(analysisData)
+    // Get session from localStorage
+    if (typeof window !== 'undefined') {
+      const savedSession = localStorage.getItem('mcp_session')
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession)
+        if (parsed.sessionId && parsed.isLoggedIn) {
+          setSessionId(parsed.sessionId)
+          fetchData(parsed.sessionId)
+        } else {
+          setError('Please connect your financial accounts from the dashboard')
+          setLoading(false)
         }
-
-        // Fetch transactions
-        const transactionsResponse = await fetch('http://localhost:8000/api/cashflow/transactions/1')
-        if (transactionsResponse.ok) {
-          const transactionsData = await transactionsResponse.json()
-          setTransactionsData(transactionsData)
-        }
-
-        // Fetch predictions
-        const predictionsResponse = await fetch('http://localhost:8000/api/cashflow/predictions/1')
-        if (predictionsResponse.ok) {
-          const predictionsData = await predictionsResponse.json()
-          setPredictionsData(predictionsData)
-        }
-
-      } catch (error) {
-        console.error('Error fetching cash flow data:', error)
-      } finally {
+      } else {
+        setError('No session found. Please connect your accounts from the dashboard')
         setLoading(false)
       }
     }
-
-    fetchData()
   }, [])
+
+  const fetchData = async (sid: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Fetch cash flow analysis from financial summary
+      const analysisResponse = await fetch(`${API_BASE_URL}/api/financial/summary/1?session_id=${sid}`)
+      if (analysisResponse.ok) {
+        const data = await analysisResponse.json()
+        // Transform data for CashFlowOverview component
+        const transformedData = {
+          summary: data.summary,
+          cash_flow: data.cash_flow,
+          category_analysis: data.cash_flow?.categories || [],
+          monthly_data: data.cash_flow?.monthly_data || []
+        }
+        setAnalysisData(transformedData)
+      }
+
+      // Note: Transaction history and predictions are using static data from backend
+      // If you have MCP endpoints for these, update the URLs accordingly
+
+    } catch (error) {
+      console.error('Error fetching cash flow data:', error)
+      setError('Failed to fetch cash flow data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -61,6 +81,17 @@ export default function CashFlowPage() {
             ))}
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     )
   }
@@ -117,16 +148,20 @@ export default function CashFlowPage() {
           <BudgetAnalysis data={analysisData} />
         )}
 
-        {activeTab === 'transactions' && transactionsData && (
-          <TransactionHistory data={transactionsData} />
+        {activeTab === 'transactions' && (
+          <div className="bg-white rounded-lg p-6 shadow-sm border">
+            <p className="text-gray-600">Transaction history coming soon with real MCP data</p>
+          </div>
         )}
 
         {activeTab === 'insights' && analysisData && (
           <SpendingInsights data={analysisData} />
         )}
 
-        {activeTab === 'predictions' && predictionsData && (
-          <CashFlowPredictions data={predictionsData} />
+        {activeTab === 'predictions' && (
+          <div className="bg-white rounded-lg p-6 shadow-sm border">
+            <p className="text-gray-600">Cash flow predictions coming soon</p>
+          </div>
         )}
       </div>
     </div>
