@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import {
   Building2, 
   PieChart, 
   RefreshCw,
-  ExternalLink,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -21,10 +21,9 @@ import {
   MessageSquare,
   BarChart3,
   CreditCard,
-  AlertTriangle
+  LogOut
 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell } from 'recharts';
-import { useRouter } from 'next/navigation';
+import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface MCPSession {
   sessionId: string;
@@ -38,22 +37,12 @@ interface FinancialData {
     total_income: number;
     total_expenses: number;
     savings_rate: number;
-    monthly_trend: string;
   };
   assets?: Array<{ type: string; value: number }>;
   liabilities?: Array<{ type: string; value: number }>;
   cash_flow?: {
-    monthly_data: Array<{
-      month: string;
-      income: number;
-      expenses: number;
-      savings: number;
-    }>;
-    categories: Array<{
-      name: string;
-      amount: number;
-      percentage: number;
-    }>;
+    monthly_data: Array<{ month: string; income: number; expenses: number; savings: number }>;
+    categories: Array<{ name: string; amount: number; percentage: number }>;
   };
   mcp_data_available: boolean;
 }
@@ -78,15 +67,15 @@ interface MutualFund {
   absolute_returns: number;
   xirr: number;
   nav: number;
+  units: number;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B9D'];
 
-export default function DashboardPage() {
+export default function IntegratedDashboard() {
   const router = useRouter();
   const [session, setSession] = useState<MCPSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [mutualFunds, setMutualFunds] = useState<MutualFund[]>([]);
@@ -95,58 +84,70 @@ export default function DashboardPage() {
 
   const BACKEND = process.env.NEXT_PUBLIC_BACKEND || "http://localhost:8000";
 
-  // Fetch all financial data
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('mcp_session');
+    }
+    setSession(null);
+    setFinancialData(null);
+    setAccounts([]);
+    setMutualFunds([]);
+    router.push('/');
+  };
+
   const fetchAllData = async (sessionId: string) => {
-    setDataLoading(true);
+    setLoading(true);
     setError(null);
+    
     try {
+      // Fetch financial summary
       const summaryRes = await fetch(`${BACKEND}/api/financial/summary/1?session_id=${sessionId}`);
       const summaryData = await summaryRes.json();
-      setFinancialData(summaryData);
+      
+      if (summaryData.mcp_data_available) {
+        setFinancialData(summaryData);
+      } else {
+        setError("MCP data not available. Please reconnect your accounts.");
+        return;
+      }
 
+      // Fetch accounts
       const accRes = await fetch(`${BACKEND}/api/financial/accounts/1?session_id=${sessionId}`);
       const accData = await accRes.json();
-      if (accData.success) {
-        setAccounts(accData.accounts || []);
+      if (accData.success && accData.accounts) {
+        setAccounts(accData.accounts);
       }
 
+      // Fetch mutual funds
       const mfRes = await fetch(`${BACKEND}/api/financial/mutual-funds/1?session_id=${sessionId}`);
       const mfData = await mfRes.json();
-      if (mfData.success) {
-        setMutualFunds(mfData.funds || []);
+      if (mfData.success && mfData.funds) {
+        setMutualFunds(mfData.funds);
       }
+
     } catch (err) {
       setError(`Data fetch failed: ${err}`);
-      console.error("Error fetching data:", err);
     } finally {
-      setDataLoading(false);
+      setLoading(false);
     }
   };
 
-  // Load session from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedSession = localStorage.getItem('mcp_session');
       if (savedSession) {
-        try {
-          const parsed = JSON.parse(savedSession);
+        const parsed = JSON.parse(savedSession);
+        if (parsed.sessionId && parsed.isLoggedIn) {
           setSession(parsed);
-          
-          if (parsed.sessionId && parsed.isLoggedIn) {
-            fetchAllData(parsed.sessionId);
-          } else {
-            setLoading(false);
-          }
-        } catch (err) {
-          console.error("Failed to parse session:", err);
-          setLoading(false);
+          fetchAllData(parsed.sessionId);
+        } else {
+          router.push('/');
         }
       } else {
-        setLoading(false);
         router.push('/');
       }
     }
-  }, [router]);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -188,7 +189,6 @@ export default function DashboardPage() {
 
   const healthScore = calculateHealthScore();
 
-  // Navigation cards for other sections
   const navigationCards = [
     {
       title: "AI Advisor",
@@ -196,7 +196,6 @@ export default function DashboardPage() {
       icon: MessageSquare,
       color: "from-purple-500 to-pink-500",
       route: "/dashboard/advisor",
-      enabled: session?.isLoggedIn
     },
     {
       title: "Cash Flow",
@@ -204,7 +203,6 @@ export default function DashboardPage() {
       icon: BarChart3,
       color: "from-blue-500 to-cyan-500",
       route: "/dashboard/cashflow",
-      enabled: session?.isLoggedIn
     },
     {
       title: "Investments",
@@ -212,7 +210,6 @@ export default function DashboardPage() {
       icon: TrendingUp,
       color: "from-green-500 to-emerald-500",
       route: "/dashboard/investments",
-      enabled: session?.isLoggedIn
     },
     {
       title: "Loans",
@@ -220,452 +217,419 @@ export default function DashboardPage() {
       icon: CreditCard,
       color: "from-orange-500 to-red-500",
       route: "/dashboard/loans",
-      enabled: session?.isLoggedIn
     }
   ];
 
-  if (loading) {
+  if (loading && !financialData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading your dashboard...</p>
+          <p className="text-gray-600">Loading your financial data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Dashboard
-          </h1>
-          <p className="text-gray-600 mt-2">Real-time Financial Intelligence</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         
-        {session && session.isLoggedIn && (
-          <Button 
-            onClick={() => session.sessionId && fetchAllData(session.sessionId)}
-            disabled={dataLoading}
-            variant="outline"
-          >
-            {dataLoading ? <Loader2 className="animate-spin mr-2" /> : <RefreshCw className="mr-2" />}
-            Refresh Data
-          </Button>
-        )}
-      </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {dataLoading && (
-        <Alert className="bg-blue-50 border-blue-200">
-          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            Fetching your latest financial data...
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {navigationCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Card 
-              key={card.title}
-              className={`cursor-pointer hover:shadow-lg transition-all ${!card.enabled && 'opacity-50 cursor-not-allowed'}`}
-              onClick={() => card.enabled && router.push(card.route)}
-            >
-              <CardContent className="p-6">
-                <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${card.color} flex items-center justify-center mb-4`}>
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="font-semibold text-lg mb-1">{card.title}</h3>
-                <p className="text-sm text-gray-600">{card.description}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Financial Summary Cards - Only show if data exists */}
-      {financialData ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Net Worth</CardTitle>
-              <Wallet className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {formatCurrency(financialData.summary.net_worth)}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Total assets minus liabilities</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Monthly Income</CardTitle>
-              <ArrowUpRight className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(financialData.summary.total_income)}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Last 30 days</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Monthly Expenses</CardTitle>
-              <ArrowDownRight className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {formatCurrency(financialData.summary.total_expenses)}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Last 30 days</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Savings Rate</CardTitle>
-              <DollarSign className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {financialData.summary.savings_rate}%
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Of total income</p>
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            No financial data available. Please make sure your session is properly authenticated.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="accounts">Accounts ({accounts.length})</TabsTrigger>
-          <TabsTrigger value="mutual-funds">Mutual Funds ({mutualFunds.length})</TabsTrigger>
-          <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
-          <TabsTrigger value="health">Health Score</TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Asset Distribution */}
-            {financialData?.assets && financialData.assets.length > 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Asset Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPie>
-                        <Pie
-                          data={financialData.assets}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ type, percent }) => `${type.replace(/_/g, ' ')} (${(percent * 100).toFixed(0)}%)`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {financialData.assets.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Value']} />
-                      </RechartsPie>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Asset Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500 text-center py-8">No asset data available</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Statistics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                  <span className="font-medium">Bank Accounts</span>
-                  <span className="text-xl font-bold text-blue-600">
-                    {accounts.filter(a => a.type === 'DEPOSIT').length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                  <span className="font-medium">Investment Accounts</span>
-                  <span className="text-xl font-bold text-green-600">
-                    {accounts.filter(a => ['EQUITIES', 'ETF', 'REIT', 'INVIT'].includes(a.type)).length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                  <span className="font-medium">Mutual Funds</span>
-                  <span className="text-xl font-bold text-purple-600">
-                    {mutualFunds.length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                  <span className="font-medium">Total Liabilities</span>
-                  <span className="text-xl font-bold text-orange-600">
-                    {formatCurrency(
-                      financialData?.liabilities?.reduce((sum, l) => sum + l.value, 0) || 0
-                    )}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              LUMEN Dashboard
+            </h1>
+            <p className="text-gray-600 mt-2">Real-time Financial Intelligence</p>
           </div>
-        </TabsContent>
+          
+          <div className="flex gap-3">
+            {session && (
+              <>
+                <Button 
+                  onClick={() => session.sessionId && fetchAllData(session.sessionId)}
+                  disabled={loading}
+                  variant="outline"
+                >
+                  {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  Refresh
+                </Button>
+                <Button 
+                  onClick={handleLogout}
+                  variant="destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
 
-        {/* Accounts Tab */}
-        <TabsContent value="accounts" className="space-y-4">
-          {accounts.length > 0 ? (
-            <div className="grid gap-4">
-              {accounts.map((account) => (
-                <Card key={account.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{account.fip}</CardTitle>
-                        <CardDescription>{account.masked_number}</CardDescription>
+        {error && (
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {financialData && financialData.mcp_data_available && (
+          <>
+            <Alert className="bg-green-50 border-green-200">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Connected successfully! Showing real-time data from your accounts.
+              </AlertDescription>
+            </Alert>
+
+            {/* Quick Navigation Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {navigationCards.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <Card 
+                    key={card.title}
+                    className="cursor-pointer hover:shadow-lg transition-all"
+                    onClick={() => router.push(card.route)}
+                  >
+                    <CardContent className="p-6">
+                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${card.color} flex items-center justify-center mb-4`}>
+                        <Icon className="h-6 w-6 text-white" />
                       </div>
-                      <Badge>{account.type.replace(/_/g, ' ')}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {account.balance !== undefined && (
-                      <div className="text-2xl font-bold text-green-600">
-                        {formatCurrency(account.balance)}
-                      </div>
-                    )}
-                    {account.current_value !== undefined && (
-                      <div className="text-2xl font-bold text-blue-600">
-                        {formatCurrency(account.current_value)}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      <h3 className="font-semibold text-lg mb-1">{card.title}</h3>
+                      <p className="text-sm text-gray-600">{card.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-          ) : (
-            <Card>
-              <CardContent className="py-8">
-                <p className="text-gray-500 text-center">No accounts available</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
 
-        {/* Mutual Funds Tab */}
-        <TabsContent value="mutual-funds" className="space-y-4">
-          {mutualFunds.length > 0 ? (
-            <div className="grid gap-4">
-              {mutualFunds.map((fund, idx) => (
-                <Card key={idx}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base">{fund.name}</CardTitle>
-                        <CardDescription>{fund.amc} • {fund.category}</CardDescription>
+            {/* Financial Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">Net Worth</CardTitle>
+                  <Wallet className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {formatCurrency(financialData.summary.net_worth)}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Total assets minus liabilities</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">Total Assets</CardTitle>
+                  <ArrowUpRight className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {formatCurrency(financialData.assets?.reduce((sum, a) => sum + a.value, 0) || 0)}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{financialData.assets?.length || 0} asset types</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">Total Liabilities</CardTitle>
+                  <ArrowDownRight className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(financialData.liabilities?.reduce((sum, l) => sum + l.value, 0) || 0)}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{financialData.liabilities?.length || 0} liability types</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">Health Score</CardTitle>
+                  <DollarSign className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {healthScore.score}/100
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{healthScore.level}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main Content Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="accounts">Accounts</TabsTrigger>
+                <TabsTrigger value="mutual-funds">Mutual Funds</TabsTrigger>
+                <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
+                <TabsTrigger value="health">Health Score</TabsTrigger>
+              </TabsList>
+
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {financialData.assets && financialData.assets.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Asset Distribution</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPie>
+                              <Pie
+                                data={financialData.assets}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ type, percent }) => `${type.replace(/ASSET_TYPE_|_/g, ' ')} (${(percent * 100).toFixed(0)}%)`}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {financialData.assets.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Value']} />
+                            </RechartsPie>
+                          </ResponsiveContainer>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Quick Statistics</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                        <span className="font-medium">Bank Accounts</span>
+                        <span className="text-xl font-bold text-blue-600">
+                          {accounts.filter(a => a.type === 'DEPOSIT').length}
+                        </span>
                       </div>
-                      <Badge variant={fund.absolute_returns >= 0 ? "default" : "destructive"}>
-                        {fund.xirr > 0 ? '+' : ''}{fund.xirr.toFixed(2)}% XIRR
-                      </Badge>
-                    </div>
+                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                        <span className="font-medium">Investment Accounts</span>
+                        <span className="text-xl font-bold text-green-600">
+                          {accounts.filter(a => ['EQUITIES', 'ETF', 'REIT', 'INVIT'].includes(a.type)).length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                        <span className="font-medium">Mutual Funds</span>
+                        <span className="text-xl font-bold text-purple-600">
+                          {mutualFunds.length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                        <span className="font-medium">Total Accounts</span>
+                        <span className="text-xl font-bold text-orange-600">
+                          {accounts.length}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Accounts Tab */}
+              <TabsContent value="accounts" className="space-y-4">
+                {accounts.length > 0 ? (
+                  <div className="grid gap-4">
+                    {accounts.map((account) => (
+                      <Card key={account.id}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <CardTitle className="text-lg">{account.fip}</CardTitle>
+                              <CardDescription>{account.masked_number}</CardDescription>
+                            </div>
+                            <Badge>{account.type.replace(/ACC_INSTRUMENT_TYPE_|_/g, ' ')}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {account.balance !== undefined && (
+                            <div className="text-2xl font-bold text-green-600">
+                              Balance: {formatCurrency(account.balance)}
+                            </div>
+                          )}
+                          {account.current_value !== undefined && (
+                            <div className="text-2xl font-bold text-blue-600">
+                              Value: {formatCurrency(account.current_value)}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center text-gray-500">
+                      No account data available
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Mutual Funds Tab */}
+              <TabsContent value="mutual-funds" className="space-y-4">
+                {mutualFunds.length > 0 ? (
+                  <div className="grid gap-4">
+                    {mutualFunds.map((fund, idx) => (
+                      <Card key={idx}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <CardTitle className="text-base">{fund.name}</CardTitle>
+                              <CardDescription>{fund.amc.replace(/_/g, ' ')} • {fund.category.replace(/_/g, ' ')}</CardDescription>
+                            </div>
+                            <Badge variant={fund.absolute_returns >= 0 ? "default" : "destructive"}>
+                              {fund.xirr > 0 ? '+' : ''}{fund.xirr.toFixed(2)}% XIRR
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-600">Current Value</p>
+                              <p className="text-lg font-semibold">{formatCurrency(fund.current_value)}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Invested</p>
+                              <p className="text-lg font-semibold">{formatCurrency(fund.invested_value)}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Returns</p>
+                              <p className={`text-lg font-semibold ${fund.absolute_returns >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(fund.absolute_returns)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Units</p>
+                              <p className="text-lg font-semibold">{fund.units.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center text-gray-500">
+                      No mutual fund data available
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Breakdown Tab */}
+              <TabsContent value="breakdown" className="space-y-4">
+                {financialData.assets && financialData.assets.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Assets Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {financialData.assets.map((asset, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                          <span className="font-medium">{asset.type.replace(/ASSET_TYPE_|_/g, ' ')}</span>
+                          <span className="text-lg font-bold">{formatCurrency(asset.value)}</span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {financialData.liabilities && financialData.liabilities.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Liabilities Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {financialData.liabilities.map((liability, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                          <span className="font-medium">{liability.type.replace(/LIABILITY_TYPE_|_/g, ' ')}</span>
+                          <span className="text-lg font-bold">{formatCurrency(liability.value)}</span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Health Score Tab */}
+              <TabsContent value="health">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Financial Health Score</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Current Value</p>
-                        <p className="text-lg font-semibold">{formatCurrency(fund.current_value)}</p>
+                    <div className="flex items-center space-x-6 mb-6">
+                      <div className="relative">
+                        <div className={`w-32 h-32 rounded-full border-8 flex items-center justify-center ${
+                          healthScore.score >= 80 ? 'border-green-500' :
+                          healthScore.score >= 60 ? 'border-yellow-500' : 'border-red-500'
+                        }`}>
+                          <span className={`text-4xl font-bold ${
+                            healthScore.score >= 80 ? 'text-green-600' :
+                            healthScore.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {healthScore.score}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Invested</p>
-                        <p className="text-lg font-semibold">{formatCurrency(fund.invested_value)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Returns</p>
-                        <p className={`text-lg font-semibold ${fund.absolute_returns >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(fund.absolute_returns)}
+                      
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 text-2xl">Level: {healthScore.level}</h4>
+                        <p className="text-gray-600 mt-2">
+                          {healthScore.score >= 80 
+                            ? "Excellent! Your finances are in great shape." 
+                            : healthScore.score >= 60 
+                            ? "Good! There's room for improvement." 
+                            : "Let's work on improving your financial health."}
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="py-8">
-                <p className="text-gray-500 text-center">No mutual funds available</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
 
-        {/* Cash Flow Tab */}
-        <TabsContent value="cashflow" className="space-y-6">
-          {financialData?.cash_flow ? (
-            <>
-              {financialData.cash_flow.monthly_data.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Cash Flow Trend</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={financialData.cash_flow.monthly_data}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
-                          <YAxis />
-                          <Tooltip formatter={(value) => [formatCurrency(Number(value)), '']} />
-                          <Line type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} name="Income" />
-                          <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} name="Expenses" />
-                          <Line type="monotone" dataKey="savings" stroke="#3b82f6" strokeWidth={2} name="Savings" />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {financialData.cash_flow.categories.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Expense Categories</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {financialData.cash_flow.categories.map((cat) => (
-                        <div key={cat.name} className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex justify-between mb-1">
-                              <span className="text-sm font-medium">{cat.name}</span>
-                              <span className="text-sm text-gray-600">{cat.percentage}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-600 h-2 rounded-full" 
-                                style={{ width: `${cat.percentage}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                          <span className="ml-4 text-sm font-semibold">{formatCurrency(cat.amount)}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-sm text-gray-600">Net Worth</div>
+                        <div className="font-semibold text-xl text-blue-600">
+                          {formatCurrency(financialData.summary.net_worth)}
                         </div>
-                      ))}
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <div className="text-sm text-gray-600">Investment Diversity</div>
+                        <div className="font-semibold text-xl text-purple-600">
+                          {accounts.filter(a => ['EQUITIES', 'ETF', 'REIT', 'INVIT'].includes(a.type)).length} assets
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-sm text-gray-600">Total Assets</div>
+                        <div className="font-semibold text-xl text-green-600">
+                          {formatCurrency(financialData.assets?.reduce((sum, a) => sum + a.value, 0) || 0)}
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="text-sm text-gray-600">Total Liabilities</div>
+                        <div className="font-semibold text-xl text-orange-600">
+                          {formatCurrency(financialData.liabilities?.reduce((sum, l) => sum + l.value, 0) || 0)}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-              )}
-            </>
-          ) : (
-            <Card>
-              <CardContent className="py-8">
-                <p className="text-gray-500 text-center">No cash flow data available</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Health Score Tab */}
-        <TabsContent value="health">
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Health Score</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-6 mb-6">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full border-8 border-gray-200 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                    <span className={`text-4xl font-bold ${
-                      healthScore.score >= 80 ? 'text-green-600' :
-                      healthScore.score >= 60 ? 'text-yellow-600' : 'text-red-600'
-                    }`}>
-                      {healthScore.score}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 text-2xl">Level: {healthScore.level}</h4>
-                  <p className="text-gray-600 mt-2">
-                    {healthScore.score >= 80 
-                      ? "Excellent! Your finances are in great shape." 
-                      : healthScore.score >= 60 
-                      ? "Good! There's room for improvement." 
-                      : "Let's work on improving your financial health."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-sm text-gray-600">Savings Rate</div>
-                  <div className="font-semibold text-xl text-green-600">
-                    {financialData?.summary.savings_rate || 0}%
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-sm text-gray-600">Net Worth</div>
-                  <div className="font-semibold text-xl text-blue-600">
-                    {formatCurrency(financialData?.summary.net_worth || 0)}
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-sm text-gray-600">Investment Diversity</div>
-                  <div className="font-semibold text-xl text-purple-600">
-                    {accounts.filter(a => ['EQUITIES', 'ETF', 'REIT', 'INVIT'].includes(a.type)).length} assets
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <div className="text-sm text-gray-600">Monthly Trend</div>
-                  <div className={`font-semibold text-xl ${
-                    financialData?.summary.monthly_trend === 'up' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {financialData?.summary.monthly_trend === 'up' ? '↗' : '↘'}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
+      </div>
     </div>
   );
 }
