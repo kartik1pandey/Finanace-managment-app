@@ -230,25 +230,25 @@ export default function IntegratedDashboard() {
 
   if (loading && !financialData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading your financial data...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-emerald-500 mx-auto mb-4" />
+          <p className="text-gray-400">Loading your financial data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8">
+    <div className="min-h-screen bg-[#0a0a0a] p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold text-white">
               Dashboard Overview
             </h1>
-            <p className="text-gray-600 mt-2">Real-time Financial Intelligence</p>
+            <p className="text-gray-400 mt-2">Real-time Financial Intelligence</p>
           </div>
           <div className="flex gap-3">
             {session && (
@@ -256,7 +256,7 @@ export default function IntegratedDashboard() {
                 onClick={() => session.sessionId && fetchAllData(session.sessionId)}
                 disabled={loading}
                 variant="outline"
-                className="shadow-sm"
+                className="shadow-sm bg-[#1a1a1a] border-gray-800 text-gray-300 hover:bg-[#2a2a2a]"
               >
                 {loading ? (
                   <Loader2 className="animate-spin mr-2 h-4 w-4" />
@@ -270,17 +270,17 @@ export default function IntegratedDashboard() {
         </div>
 
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="bg-red-950 border-red-800">
             <XCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="text-red-200">{error}</AlertDescription>
           </Alert>
         )}
 
         {financialData && financialData.mcp_data_available && (
           <>
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="bg-emerald-950 border-emerald-800">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              <AlertDescription className="text-emerald-200">
                 Connected successfully! Showing real-time data from your accounts.
               </AlertDescription>
             </Alert>
@@ -292,7 +292,7 @@ export default function IntegratedDashboard() {
                 return (
                   <Card
                     key={card.title}
-                    className="cursor-pointer hover:shadow-lg transition-all"
+                    className="cursor-pointer hover:shadow-lg transition-all bg-[#1a1a1a] border-gray-800 hover:border-gray-700"
                     onClick={() => router.push(card.route)}
                   >
                     <CardContent className="p-6">
@@ -301,8 +301,8 @@ export default function IntegratedDashboard() {
                       >
                         <Icon className="h-6 w-6 text-white" />
                       </div>
-                      <h3 className="font-semibold text-lg mb-1">{card.title}</h3>
-                      <p className="text-sm text-gray-600">{card.description}</p>
+                      <h3 className="font-semibold text-lg mb-1 text-white">{card.title}</h3>
+                      <p className="text-sm text-gray-400">{card.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -310,15 +310,15 @@ export default function IntegratedDashboard() {
 
             {/* Financial Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">
+                  <CardTitle className="text-sm font-medium text-gray-400">
                     Net Worth
                   </CardTitle>
-                  <Wallet className="h-4 w-4 text-blue-600" />
+                  <Wallet className="h-4 w-4 text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-emerald-400">
                     {formatCurrency(financialData.summary.net_worth)}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -327,15 +327,15 @@ export default function IntegratedDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">
+                  <CardTitle className="text-sm font-medium text-gray-400">
                     Total Assets
                   </CardTitle>
-                  <ArrowUpRight className="h-4 w-4 text-green-600" />
+                  <ArrowUpRight className="h-4 w-4 text-green-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-green-400">
                     {formatCurrency(
                       financialData.assets?.reduce((sum, a) => sum + a.value, 0) || 0
                     )}
@@ -346,15 +346,15 @@ export default function IntegratedDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">
+                  <CardTitle className="text-sm font-medium text-gray-400">
                     Total Liabilities
                   </CardTitle>
-                  <ArrowDownRight className="h-4 w-4 text-red-600" />
+                  <ArrowDownRight className="h-4 w-4 text-red-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
+                  <div className="text-2xl font-bold text-red-400">
                     {formatCurrency(
                       financialData.liabilities?.reduce((sum, l) => sum + l.value, 0) ||
                         0
@@ -366,15 +366,15 @@ export default function IntegratedDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">
+                  <CardTitle className="text-sm font-medium text-gray-400">
                     Health Score
                   </CardTitle>
-                  <DollarSign className="h-4 w-4 text-purple-600" />
+                  <DollarSign className="h-4 w-4 text-purple-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">
+                  <div className="text-2xl font-bold text-purple-400">
                     {healthScore.score}/100
                   </div>
                   <p className="text-xs text-gray-500 mt-1">{healthScore.level}</p>
@@ -384,21 +384,21 @@ export default function IntegratedDashboard() {
 
             {/* Main Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="accounts">Accounts</TabsTrigger>
-                <TabsTrigger value="mutual-funds">Mutual Funds</TabsTrigger>
-                <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
-                <TabsTrigger value="health">Health Score</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-5 bg-[#1a1a1a] border-gray-800">
+                <TabsTrigger value="overview" className="data-[state=active]:bg-[#2a2a2a] text-gray-400 data-[state=active]:text-white">Overview</TabsTrigger>
+                <TabsTrigger value="accounts" className="data-[state=active]:bg-[#2a2a2a] text-gray-400 data-[state=active]:text-white">Accounts</TabsTrigger>
+                <TabsTrigger value="mutual-funds" className="data-[state=active]:bg-[#2a2a2a] text-gray-400 data-[state=active]:text-white">Mutual Funds</TabsTrigger>
+                <TabsTrigger value="breakdown" className="data-[state=active]:bg-[#2a2a2a] text-gray-400 data-[state=active]:text-white">Breakdown</TabsTrigger>
+                <TabsTrigger value="health" className="data-[state=active]:bg-[#2a2a2a] text-gray-400 data-[state=active]:text-white">Health Score</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {financialData.assets && financialData.assets.length > 0 && (
-                    <Card>
+                    <Card className="bg-[#1a1a1a] border-gray-800">
                       <CardHeader>
-                        <CardTitle>Asset Distribution</CardTitle>
+                        <CardTitle className="text-white">Asset Distribution</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="h-64">
@@ -438,20 +438,20 @@ export default function IntegratedDashboard() {
                     </Card>
                   )}
 
-                  <Card>
+                  <Card className="bg-[#1a1a1a] border-gray-800">
                     <CardHeader>
-                      <CardTitle>Quick Statistics</CardTitle>
+                      <CardTitle className="text-white">Quick Statistics</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                        <span className="font-medium">Bank Accounts</span>
-                        <span className="text-xl font-bold text-blue-600">
+                      <div className="flex justify-between items-center p-3 bg-blue-950 rounded-lg border border-blue-900">
+                        <span className="font-medium text-gray-300">Bank Accounts</span>
+                        <span className="text-xl font-bold text-blue-400">
                           {accounts.filter((a) => a.type === "DEPOSIT").length}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                        <span className="font-medium">Investment Accounts</span>
-                        <span className="text-xl font-bold text-green-600">
+                      <div className="flex justify-between items-center p-3 bg-green-950 rounded-lg border border-green-900">
+                        <span className="font-medium text-gray-300">Investment Accounts</span>
+                        <span className="text-xl font-bold text-green-400">
                           {
                             accounts.filter((a) =>
                               ["EQUITIES", "ETF", "REIT", "INVIT"].includes(a.type)
@@ -459,15 +459,15 @@ export default function IntegratedDashboard() {
                           }
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                        <span className="font-medium">Mutual Funds</span>
-                        <span className="text-xl font-bold text-purple-600">
+                      <div className="flex justify-between items-center p-3 bg-purple-950 rounded-lg border border-purple-900">
+                        <span className="font-medium text-gray-300">Mutual Funds</span>
+                        <span className="text-xl font-bold text-purple-400">
                           {mutualFunds.length}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                        <span className="font-medium">Total Accounts</span>
-                        <span className="text-xl font-bold text-orange-600">
+                      <div className="flex justify-between items-center p-3 bg-orange-950 rounded-lg border border-orange-900">
+                        <span className="font-medium text-gray-300">Total Accounts</span>
+                        <span className="text-xl font-bold text-orange-400">
                           {accounts.length}
                         </span>
                       </div>
@@ -481,26 +481,26 @@ export default function IntegratedDashboard() {
                 {accounts.length > 0 ? (
                   <div className="grid gap-4">
                     {accounts.map((account) => (
-                      <Card key={account.id}>
+                      <Card key={account.id} className="bg-[#1a1a1a] border-gray-800">
                         <CardHeader>
                           <div className="flex items-center justify-between">
                             <div>
-                              <CardTitle className="text-lg">{account.fip}</CardTitle>
-                              <CardDescription>{account.masked_number}</CardDescription>
+                              <CardTitle className="text-lg text-white">{account.fip}</CardTitle>
+                              <CardDescription className="text-gray-400">{account.masked_number}</CardDescription>
                             </div>
-                            <Badge>
+                            <Badge className="bg-emerald-900 text-emerald-300">
                               {account.type.replace(/ACC_INSTRUMENT_TYPE_|_/g, " ")}
                             </Badge>
                           </div>
                         </CardHeader>
                         <CardContent>
                           {account.balance !== undefined && (
-                            <div className="text-2xl font-bold text-green-600">
+                            <div className="text-2xl font-bold text-green-400">
                               Balance: {formatCurrency(account.balance)}
                             </div>
                           )}
                           {account.current_value !== undefined && (
-                            <div className="text-2xl font-bold text-blue-600">
+                            <div className="text-2xl font-bold text-blue-400">
                               Value: {formatCurrency(account.current_value)}
                             </div>
                           )}
@@ -509,8 +509,8 @@ export default function IntegratedDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <Card>
-                    <CardContent className="p-6 text-center text-gray-500">
+                  <Card className="bg-[#1a1a1a] border-gray-800">
+                    <CardContent className="p-6 text-center text-gray-400">
                       No account data available
                     </CardContent>
                   </Card>
@@ -522,20 +522,18 @@ export default function IntegratedDashboard() {
                 {mutualFunds.length > 0 ? (
                   <div className="grid gap-4">
                     {mutualFunds.map((fund, idx) => (
-                      <Card key={idx}>
+                      <Card key={idx} className="bg-[#1a1a1a] border-gray-800">
                         <CardHeader>
                           <div className="flex items-center justify-between">
                             <div>
-                              <CardTitle className="text-base">{fund.name}</CardTitle>
-                              <CardDescription>
+                              <CardTitle className="text-base text-white">{fund.name}</CardTitle>
+                              <CardDescription className="text-gray-400">
                                 {fund.amc.replace(/_/g, " ")} •{" "}
                                 {fund.category.replace(/_/g, " ")}
                               </CardDescription>
                             </div>
                             <Badge
-                              variant={
-                                fund.absolute_returns >= 0 ? "default" : "destructive"
-                              }
+                              className={fund.absolute_returns >= 0 ? "bg-emerald-900 text-emerald-300" : "bg-red-900 text-red-300"}
                             >
                               {fund.xirr > 0 ? "+" : ""}
                               {fund.xirr.toFixed(2)}% XIRR
@@ -545,32 +543,32 @@ export default function IntegratedDashboard() {
                         <CardContent>
                           <div className="grid grid-cols-4 gap-4">
                             <div>
-                              <p className="text-sm text-gray-600">Current Value</p>
-                              <p className="text-lg font-semibold">
+                              <p className="text-sm text-gray-400">Current Value</p>
+                              <p className="text-lg font-semibold text-white">
                                 {formatCurrency(fund.current_value)}
                               </p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-600">Invested</p>
-                              <p className="text-lg font-semibold">
+                              <p className="text-sm text-gray-400">Invested</p>
+                              <p className="text-lg font-semibold text-white">
                                 {formatCurrency(fund.invested_value)}
                               </p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-600">Returns</p>
+                              <p className="text-sm text-gray-400">Returns</p>
                               <p
                                 className={`text-lg font-semibold ${
                                   fund.absolute_returns >= 0
-                                    ? "text-green-600"
-                                    : "text-red-600"
+                                    ? "text-green-400"
+                                    : "text-red-400"
                                 }`}
                               >
                                 {formatCurrency(fund.absolute_returns)}
                               </p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-600">Units</p>
-                              <p className="text-lg font-semibold">
+                              <p className="text-sm text-gray-400">Units</p>
+                              <p className="text-lg font-semibold text-white">
                                 {fund.units.toFixed(2)}
                               </p>
                             </div>
@@ -580,8 +578,8 @@ export default function IntegratedDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <Card>
-                    <CardContent className="p-6 text-center text-gray-500">
+                  <Card className="bg-[#1a1a1a] border-gray-800">
+                    <CardContent className="p-6 text-center text-gray-400">
                       No mutual fund data available
                     </CardContent>
                   </Card>
@@ -591,20 +589,20 @@ export default function IntegratedDashboard() {
               {/* Breakdown Tab */}
               <TabsContent value="breakdown" className="space-y-4">
                 {financialData.assets && financialData.assets.length > 0 && (
-                  <Card>
+                  <Card className="bg-[#1a1a1a] border-gray-800">
                     <CardHeader>
-                      <CardTitle>Assets Breakdown</CardTitle>
+                      <CardTitle className="text-white">Assets Breakdown</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {financialData.assets.map((asset, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-3 bg-green-50 rounded-lg"
+                          className="flex items-center justify-between p-3 bg-green-950 rounded-lg border border-green-900"
                         >
-                          <span className="font-medium">
+                          <span className="font-medium text-gray-300">
                             {asset.type.replace(/ASSET_TYPE_|_/g, " ")}
                           </span>
-                          <span className="text-lg font-bold">
+                          <span className="text-lg font-bold text-green-400">
                             {formatCurrency(asset.value)}
                           </span>
                         </div>
@@ -614,20 +612,20 @@ export default function IntegratedDashboard() {
                 )}
 
                 {financialData.liabilities && financialData.liabilities.length > 0 && (
-                  <Card>
+                  <Card className="bg-[#1a1a1a] border-gray-800">
                     <CardHeader>
-                      <CardTitle>Liabilities Breakdown</CardTitle>
+                      <CardTitle className="text-white">Liabilities Breakdown</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {financialData.liabilities.map((liability, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-3 bg-red-50 rounded-lg"
+                          className="flex items-center justify-between p-3 bg-red-950 rounded-lg border border-red-900"
                         >
-                          <span className="font-medium">
+                          <span className="font-medium text-gray-300">
                             {liability.type.replace(/LIABILITY_TYPE_|_/g, " ")}
                           </span>
-                          <span className="text-lg font-bold">
+                          <span className="text-lg font-bold text-red-400">
                             {formatCurrency(liability.value)}
                           </span>
                         </div>
@@ -639,9 +637,9 @@ export default function IntegratedDashboard() {
 
               {/* Health Score Tab */}
               <TabsContent value="health">
-                <Card>
+                <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardHeader>
-                    <CardTitle>Financial Health Score</CardTitle>
+                    <CardTitle className="text-white">Financial Health Score</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center space-x-6 mb-6">
@@ -658,10 +656,10 @@ export default function IntegratedDashboard() {
                           <span
                             className={`text-4xl font-bold ${
                               healthScore.score >= 80
-                                ? "text-green-600"
+                                ? "text-green-400"
                                 : healthScore.score >= 60
-                                ? "text-yellow-600"
-                                : "text-red-600"
+                                ? "text-yellow-400"
+                                : "text-red-400"
                             }`}
                           >
                             {healthScore.score}
@@ -669,10 +667,10 @@ export default function IntegratedDashboard() {
                         </div>
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 text-2xl">
+                        <h4 className="font-semibold text-white text-2xl">
                           Level: {healthScore.level}
                         </h4>
-                        <p className="text-gray-600 mt-2">
+                        <p className="text-gray-400 mt-2">
                           {healthScore.score >= 80
                             ? "Excellent! Your finances are in great shape."
                             : healthScore.score >= 60
@@ -682,15 +680,15 @@ export default function IntegratedDashboard() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <div className="text-sm text-gray-600">Net Worth</div>
-                        <div className="font-semibold text-xl text-blue-600">
+                      <div className="text-center p-4 bg-blue-950 rounded-lg border border-blue-900">
+                        <div className="text-sm text-gray-400">Net Worth</div>
+                        <div className="font-semibold text-xl text-blue-400">
                           {formatCurrency(financialData.summary.net_worth)}
                         </div>
                       </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <div className="text-sm text-gray-600">Investment Diversity</div>
-                        <div className="font-semibold text-xl text-purple-600">
+                      <div className="text-center p-4 bg-purple-950 rounded-lg border border-purple-900">
+                        <div className="text-sm text-gray-400">Investment Diversity</div>
+                        <div className="font-semibold text-xl text-purple-400">
                           {
                             accounts.filter((a) =>
                               ["EQUITIES", "ETF", "REIT", "INVIT"].includes(a.type)
@@ -699,18 +697,18 @@ export default function IntegratedDashboard() {
                           assets
                         </div>
                       </div>
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <div className="text-sm text-gray-600">Total Assets</div>
-                        <div className="font-semibold text-xl text-green-600">
+                      <div className="text-center p-4 bg-green-950 rounded-lg border border-green-900">
+                        <div className="text-sm text-gray-400">Total Assets</div>
+                        <div className="font-semibold text-xl text-green-400">
                           {formatCurrency(
                             financialData.assets?.reduce((sum, a) => sum + a.value, 0) ||
                               0
                           )}
                         </div>
                       </div>
-                      <div className="text-center p-4 bg-orange-50 rounded-lg">
-                        <div className="text-sm text-gray-600">Total Liabilities</div>
-                        <div className="font-semibold text-xl text-orange-600">
+                      <div className="text-center p-4 bg-orange-950 rounded-lg border border-orange-900">
+                        <div className="text-sm text-gray-400">Total Liabilities</div>
+                        <div className="font-semibold text-xl text-orange-400">
                           {formatCurrency(
                             financialData.liabilities?.reduce(
                               (sum, l) => sum + l.value,

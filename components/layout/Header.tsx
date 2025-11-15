@@ -53,23 +53,10 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 z-50">
-      <div className="max-w-6xl mx-auto h-full px-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <button onClick={() => router.push(authed ? '/dashboard' : '/login')} className="text-xl font-bold">LUMEN AI</button>
-          <nav className="hidden md:flex items-center gap-4 text-sm">
-            <button onClick={() => router.push('/dashboard')} className="hover:underline">Dashboard</button>
-            <button onClick={() => router.push('/dashboard')} className="hover:underline">Accounts</button>
-            <button onClick={() => router.push('/dashboard')} className="hover:underline">Transactions</button>
-            <button onClick={() => router.push('/dashboard')} className="hover:underline">Reports</button>
-            <a href="https://finbodhi.com/docs/getting-started" className="hover:underline" target="_blank">Docs</a>
-          </nav>
-        </div>
+    <header className="fixed top-0 left-0 right-0 h-16 bg-[#0a0a0a] border-b border-gray-800 z-50">
+      <div className="max-w-6xl mx-auto h-full px-4 flex items-center justify-end">
         <div className="flex items-center gap-3">
-          <button aria-label="Toggle theme" onClick={toggleTheme} className="px-3 py-2 border rounded-md">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          <button onClick={handleAuthClick} className="px-4 py-2 border border-blue-600 text-blue-600 rounded-md">
+          <button onClick={handleAuthClick} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 transition-all">
             {authed ? 'Logout' : 'Login'}
           </button>
         </div>

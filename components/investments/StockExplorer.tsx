@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -154,18 +155,18 @@ export default function StockExplorer() {
   }
 
   const getRSIColor = (rsi: number) => {
-    if (rsi > 70) return 'text-red-600'
-    if (rsi < 30) return 'text-green-600'
-    return 'text-yellow-600'
+    if (rsi > 70) return 'text-red-400'
+    if (rsi < 30) return 'text-green-400'
+    return 'text-yellow-400'
   }
 
   return (
     <div className="space-y-6">
       {/* Watchlist & Search */}
-      <Card>
+      <Card className="bg-[#1a1a1a] border-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Search className="h-5 w-5 text-emerald-400" />
             Stock Explorer
           </CardTitle>
         </CardHeader>
@@ -177,6 +178,7 @@ export default function StockExplorer() {
               value={ticker}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
               onKeyPress={(e) => e.key === 'Enter' && addToWatchlist()}
+              className="bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500"
             />
             <Button onClick={addToWatchlist} size="icon">
               <Plus className="h-4 w-4" />
@@ -190,8 +192,8 @@ export default function StockExplorer() {
                 key={symbol}
                 className={`flex items-center gap-2 px-3 py-1 rounded-lg cursor-pointer transition-colors ${
                   selectedStock === symbol
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 hover:bg-gray-200'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-[#1a1a1a] hover:bg-gray-800 border border-gray-700 text-white'
                 }`}
                 onClick={() => fetchStockData(symbol)}
               >
@@ -201,7 +203,7 @@ export default function StockExplorer() {
                     e.stopPropagation()
                     removeFromWatchlist(symbol)
                   }}
-                  className="hover:text-red-600"
+                  className="hover:text-red-400"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -221,10 +223,10 @@ export default function StockExplorer() {
 
       {/* Loading State */}
       {loading && (
-        <Card>
+        <Card className="bg-[#1a1a1a] border-gray-800">
           <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <span className="ml-3 text-gray-600">Loading stock data...</span>
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            <span className="ml-3 text-gray-400">Loading stock data...</span>
           </CardContent>
         </Card>
       )}
@@ -233,16 +235,16 @@ export default function StockExplorer() {
       {stockData && !loading && (
         <>
           {/* Quote Card */}
-          <Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-2xl">{selectedStock}</CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">Real-time Quote</p>
+                  <CardTitle className="text-2xl text-white">{selectedStock}</CardTitle>
+                  <p className="text-sm text-gray-400 mt-1">Real-time Quote</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold">{formatCurrency(stockData.price)}</div>
-                  <div className={`flex items-center gap-1 ${stockData.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className="text-3xl font-bold text-white">{formatCurrency(stockData.price)}</div>
+                  <div className={`flex items-center gap-1 ${stockData.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {stockData.change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                     <span className="font-semibold">
                       {formatNumber(stockData.change)} ({formatNumber(stockData.changePercent)}%)
@@ -254,36 +256,36 @@ export default function StockExplorer() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Open</p>
-                  <p className="font-semibold">{formatCurrency(stockData.open)}</p>
+                  <p className="text-sm text-gray-400">Open</p>
+                  <p className="font-semibold text-white">{formatCurrency(stockData.open)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">High</p>
-                  <p className="font-semibold">{formatCurrency(stockData.high)}</p>
+                  <p className="text-sm text-gray-400">High</p>
+                  <p className="font-semibold text-white">{formatCurrency(stockData.high)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Low</p>
-                  <p className="font-semibold">{formatCurrency(stockData.low)}</p>
+                  <p className="text-sm text-gray-400">Low</p>
+                  <p className="font-semibold text-white">{formatCurrency(stockData.low)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Volume</p>
-                  <p className="font-semibold">{stockData.volume.toLocaleString()}</p>
+                  <p className="text-sm text-gray-400">Volume</p>
+                  <p className="font-semibold text-white">{stockData.volume.toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Market Cap</p>
-                  <p className="font-semibold">{stockData.marketCap}</p>
+                  <p className="text-sm text-gray-400">Market Cap</p>
+                  <p className="font-semibold text-white">{stockData.marketCap}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">P/E Ratio</p>
-                  <p className="font-semibold">{stockData.pe}</p>
+                  <p className="text-sm text-gray-400">P/E Ratio</p>
+                  <p className="font-semibold text-white">{stockData.pe}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">EPS</p>
-                  <p className="font-semibold">{stockData.eps}</p>
+                  <p className="text-sm text-gray-400">EPS</p>
+                  <p className="font-semibold text-white">{stockData.eps}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Div Yield</p>
-                  <p className="font-semibold">{stockData.dividendYield}</p>
+                  <p className="text-sm text-gray-400">Div Yield</p>
+                  <p className="font-semibold text-white">{stockData.dividendYield}</p>
                 </div>
               </div>
             </CardContent>
@@ -291,15 +293,15 @@ export default function StockExplorer() {
 
           {/* Technical Indicators */}
           {technicals && (
-            <Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
               <CardHeader>
-                <CardTitle>Technical Analysis</CardTitle>
+                <CardTitle className="text-white">Technical Analysis</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-[#1a1a1a] rounded-lg">
                   <div>
-                    <p className="text-sm text-gray-600">Signal</p>
-                    <p className="text-2xl font-bold capitalize">{technicals.signal_type}</p>
+                    <p className="text-sm text-gray-400">Signal</p>
+                    <p className="text-2xl font-bold capitalize text-white">{technicals.signal_type}</p>
                   </div>
                   <Badge className={getSignalColor(technicals.signal_type)}>
                     {technicals.signal_strength}
@@ -307,8 +309,8 @@ export default function StockExplorer() {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">RSI</p>
+                  <div className="p-3 bg-[#1a1a1a] rounded-lg">
+                    <p className="text-sm text-gray-400">RSI</p>
                     <p className={`text-xl font-bold ${getRSIColor(technicals.rsi)}`}>
                       {formatNumber(technicals.rsi)}
                     </p>
@@ -317,20 +319,20 @@ export default function StockExplorer() {
                     </p>
                   </div>
 
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">MACD</p>
-                    <p className="text-xl font-bold">{formatNumber(technicals.macd)}</p>
+                  <div className="p-3 bg-[#1a1a1a] rounded-lg">
+                    <p className="text-sm text-gray-400">MACD</p>
+                    <p className="text-xl font-bold text-white">{formatNumber(technicals.macd)}</p>
                     <p className="text-xs text-gray-500">Signal: {formatNumber(technicals.signal)}</p>
                   </div>
 
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">SMA 50</p>
-                    <p className="text-xl font-bold">{formatCurrency(technicals.sma50)}</p>
+                  <div className="p-3 bg-[#1a1a1a] rounded-lg">
+                    <p className="text-sm text-gray-400">SMA 50</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(technicals.sma50)}</p>
                   </div>
 
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">SMA 200</p>
-                    <p className="text-xl font-bold">{formatCurrency(technicals.sma200)}</p>
+                  <div className="p-3 bg-[#1a1a1a] rounded-lg">
+                    <p className="text-sm text-gray-400">SMA 200</p>
+                    <p className="text-xl font-bold text-white">{formatCurrency(technicals.sma200)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -338,10 +340,10 @@ export default function StockExplorer() {
           )}
 
           {/* Price Chart */}
-          <Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Price Chart</CardTitle>
+                <CardTitle className="text-white">Price Chart</CardTitle>
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -431,13 +433,13 @@ export default function StockExplorer() {
 
           {/* AI Analysis */}
           {analysis && (
-            <Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
               <CardHeader>
-                <CardTitle>AI Analysis & Recommendations</CardTitle>
+                <CardTitle className="text-white">AI Analysis & Recommendations</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose max-w-none">
-                  <p className="whitespace-pre-wrap text-gray-700">{analysis}</p>
+                <div className="prose prose-invert max-w-none text-gray-300">
+                  <ReactMarkdown>{analysis}</ReactMarkdown>
                 </div>
               </CardContent>
             </Card>

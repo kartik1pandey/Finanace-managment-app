@@ -45,18 +45,18 @@ export default function DashboardSidebar() {
   };
 
   return (
-    <div className="fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl flex flex-col">
+    <div className="fixed inset-y-0 left-0 z-50 w-72 bg-[#0a0a0a] border-r border-gray-800 shadow-2xl flex flex-col">
       {/* Logo Section */}
-      <div className="p-6 border-b border-slate-700/50">
+      <div className="p-6 border-b border-gray-800">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold text-white">
               LUMEN
             </h2>
-            <p className="text-xs text-slate-400">Financial Intelligence</p>
+            <p className="text-xs text-gray-400">Financial Intelligence</p>
           </div>
         </div>
       </div>
@@ -73,11 +73,11 @@ export default function DashboardSidebar() {
                   onClick={() => router.push(item.id)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                     isActive
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                      : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                      : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-white'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-white'}`} />
                   <span className="font-medium">{item.label}</span>
                   {isActive && (
                     <div className="ml-auto w-2 h-2 rounded-full bg-white animate-pulse"></div>
@@ -90,17 +90,17 @@ export default function DashboardSidebar() {
       </nav>
 
       {/* User Profile & Logout Section */}
-      <div className="p-4 border-t border-slate-700/50 bg-slate-900/50">
+      <div className="p-4 border-t border-gray-800 bg-[#0a0a0a]">
         {/* User Info */}
-        <div className="mb-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+        <div className="mb-3 p-3 rounded-xl bg-[#1a1a1a] border border-gray-800">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg">
               <User className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">{userName}</p>
               {userEmail && (
-                <p className="text-xs text-slate-400 truncate">{userEmail}</p>
+                <p className="text-xs text-gray-400 truncate">{userEmail}</p>
               )}
             </div>
           </div>

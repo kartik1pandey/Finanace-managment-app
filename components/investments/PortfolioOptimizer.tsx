@@ -10,7 +10,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { Download, TrendingUp, TrendingDown, AlertTriangle, PieChart as PieChartIcon, BarChart3, Building2, Cpu, Heart, CreditCard, Car, Zap, Wifi, Home, Factory } from 'lucide-react'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND || 'http://localhost:8000'
-const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || 'AIzaSyBRLUBQW__rO5hV7WqP3d7mau16bTz11N'
+const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || 'AIzaSyBRLUBQW__rO5hV7WqP3d7mau16bTz11NQ'
 
 
 interface PortfolioHolding {
@@ -72,32 +72,177 @@ export default function PortfolioOptimizer() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('analysis')
 
-  // Fetch stock sector information from your backend
-  const fetchStockSectorInfo = async (symbol: string): Promise<{ sector: string; industry: string; companyName: string }> => {
+  // Enhanced function to get stock sector and industry using Gemini API
+  const getStockSectorAndIndustry = async (symbol: string): Promise<{ sector: string; industry: string; companyName: string }> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/investments/stock/${symbol}`)
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
+
+      const promptText = `For the stock ticker symbol ${symbol}, provide the following information in JSON format only:
+{
+  "sector": "main business sector",
+  "industry": "specific industry",
+  "companyName": "full company name"
+}
+
+Use standard GICS sector classifications. Be accurate and specific.`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: promptText }
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 500,
+            response_mime_type: "application/json",
+          },
+        }),
+      });
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch data for ${symbol}`)
+        throw new Error(`Gemini API error: ${response.status}`);
       }
+
+      const data = await response.json();
+      const jsonString = data.candidates[0].content.parts[0].text;
       
-      const data = await response.json()
+      // Clean JSON string
+      const cleanedJson = jsonString.replace(/```json\n?|```\n?/g, '').trim();
+      const result = JSON.parse(cleanedJson);
       
-      // Extract sector and industry information from the stock data
-      // This assumes your backend returns sector/industry info in the quote
       return {
-        sector: data.quote?.sector || 'Unknown',
-        industry: data.quote?.industry || 'Unknown',
-        companyName: data.quote?.companyName || symbol
-      }
+        sector: result.sector || 'Unknown',
+        industry: result.industry || 'Unknown',
+        companyName: result.companyName || symbol
+      };
     } catch (error) {
-      console.warn(`Could not fetch sector info for ${symbol}:`, error)
+      console.warn(`Failed to get sector info for ${symbol} from Gemini:`, error);
+      
+      // Fallback to backend API
+      try {
+        const backendResponse = await fetch(`${API_BASE_URL}/api/investments/stock/${symbol}`);
+        if (backendResponse.ok) {
+          const backendData = await backendResponse.json();
+          return {
+            sector: backendData.quote?.sector || 'Unknown',
+            industry: backendData.quote?.industry || 'Unknown',
+            companyName: backendData.quote?.companyName || symbol
+          };
+        }
+      } catch (backendError) {
+        console.warn(`Backend also failed for ${symbol}:`, backendError);
+      }
+      
+      // Final fallback to predefined mappings for common stocks
+      const commonStocks: { [key: string]: { sector: string; industry: string; companyName: string } } = {
+        'AAPL': { sector: 'Technology', industry: 'Consumer Electronics', companyName: 'Apple Inc.' },
+        'MSFT': { sector: 'Technology', industry: 'Software', companyName: 'Microsoft Corporation' },
+        'GOOGL': { sector: 'Technology', industry: 'Internet Services', companyName: 'Alphabet Inc.' },
+        'AMZN': { sector: 'Consumer Cyclical', industry: 'E-Commerce', companyName: 'Amazon.com Inc.' },
+        'TSLA': { sector: 'Consumer Cyclical', industry: 'Automotive', companyName: 'Tesla Inc.' },
+        'META': { sector: 'Technology', industry: 'Social Media', companyName: 'Meta Platforms Inc.' },
+        'NVDA': { sector: 'Technology', industry: 'Semiconductors', companyName: 'NVIDIA Corporation' },
+        'JPM': { sector: 'Financial Services', industry: 'Banking', companyName: 'JPMorgan Chase & Co.' },
+        'JNJ': { sector: 'Healthcare', industry: 'Pharmaceuticals', companyName: 'Johnson & Johnson' },
+        'XOM': { sector: 'Energy', industry: 'Oil & Gas', companyName: 'Exxon Mobil Corporation' },
+        'WMT': { sector: 'Consumer Defensive', industry: 'Discount Stores', companyName: 'Walmart Inc.' },
+        'PG': { sector: 'Consumer Defensive', industry: 'Household Products', companyName: 'Procter & Gamble Co.' },
+        'DIS': { sector: 'Communication Services', industry: 'Entertainment', companyName: 'The Walt Disney Company' },
+        'NFLX': { sector: 'Communication Services', industry: 'Streaming', companyName: 'Netflix Inc.' },
+        'ADBE': { sector: 'Technology', industry: 'Software', companyName: 'Adobe Inc.' },
+        'CRM': { sector: 'Technology', industry: 'Software', companyName: 'Salesforce Inc.' },
+        'INTC': { sector: 'Technology', industry: 'Semiconductors', companyName: 'Intel Corporation' },
+        'CSCO': { sector: 'Technology', industry: 'Networking', companyName: 'Cisco Systems Inc.' },
+        'PEP': { sector: 'Consumer Defensive', industry: 'Beverages', companyName: 'PepsiCo Inc.' },
+        'KO': { sector: 'Consumer Defensive', industry: 'Beverages', companyName: 'The Coca-Cola Company' },
+        'T': { sector: 'Communication Services', industry: 'Telecom', companyName: 'AT&T Inc.' },
+        'VZ': { sector: 'Communication Services', industry: 'Telecom', companyName: 'Verizon Communications Inc.' },
+        'HD': { sector: 'Consumer Cyclical', industry: 'Home Improvement', companyName: 'The Home Depot Inc.' },
+        'NKE': { sector: 'Consumer Cyclical', industry: 'Apparel', companyName: 'Nike Inc.' },
+        'BA': { sector: 'Industrial', industry: 'Aerospace', companyName: 'Boeing Company' },
+        'CAT': { sector: 'Industrial', industry: 'Farm & Construction', companyName: 'Caterpillar Inc.' },
+        'GE': { sector: 'Industrial', industry: 'Conglomerate', companyName: 'General Electric Company' },
+        'IBM': { sector: 'Technology', industry: 'IT Services', companyName: 'International Business Machines Corp.' },
+        'ORCL': { sector: 'Technology', industry: 'Software', companyName: 'Oracle Corporation' },
+        'SAP': { sector: 'Technology', industry: 'Software', companyName: 'SAP SE' },
+        'BABA': { sector: 'Consumer Cyclical', industry: 'E-Commerce', companyName: 'Alibaba Group Holding Ltd.' },
+        'TSM': { sector: 'Technology', industry: 'Semiconductors', companyName: 'Taiwan Semiconductor Manufacturing Co.' },
+        'ASML': { sector: 'Technology', industry: 'Semiconductor Equipment', companyName: 'ASML Holding NV' },
+        'UNH': { sector: 'Healthcare', industry: 'Managed Care', companyName: 'UnitedHealth Group Inc.' },
+        'PFE': { sector: 'Healthcare', industry: 'Pharmaceuticals', companyName: 'Pfizer Inc.' },
+        'LLY': { sector: 'Healthcare', industry: 'Pharmaceuticals', companyName: 'Eli Lilly and Company' },
+        'ABT': { sector: 'Healthcare', industry: 'Medical Devices', companyName: 'Abbott Laboratories' },
+        'TMO': { sector: 'Healthcare', industry: 'Life Sciences', companyName: 'Thermo Fisher Scientific Inc.' },
+        'DHR': { sector: 'Healthcare', industry: 'Medical Devices', companyName: 'Danaher Corporation' },
+        'NEE': { sector: 'Utilities', industry: 'Electric Utilities', companyName: 'NextEra Energy Inc.' },
+        'DUK': { sector: 'Utilities', industry: 'Electric Utilities', companyName: 'Duke Energy Corporation' },
+        'SO': { sector: 'Utilities', industry: 'Electric Utilities', companyName: 'The Southern Company' },
+        'AEP': { sector: 'Utilities', industry: 'Electric Utilities', companyName: 'American Electric Power Company Inc.' },
+        'AMT': { sector: 'Real Estate', industry: 'REIT', companyName: 'American Tower Corporation' },
+        'PLD': { sector: 'Real Estate', industry: 'REIT', companyName: 'Prologis Inc.' },
+        'EQIX': { sector: 'Real Estate', industry: 'REIT', companyName: 'Equinix Inc.' },
+        'SPG': { sector: 'Real Estate', industry: 'REIT', companyName: 'Simon Property Group Inc.' },
+        'V': { sector: 'Financial Services', industry: 'Payment Processing', companyName: 'Visa Inc.' },
+        'MA': { sector: 'Financial Services', industry: 'Payment Processing', companyName: 'Mastercard Inc.' },
+        'AXP': { sector: 'Financial Services', industry: 'Payment Processing', companyName: 'American Express Company' },
+        'GS': { sector: 'Financial Services', industry: 'Investment Banking', companyName: 'The Goldman Sachs Group Inc.' },
+        'MS': { sector: 'Financial Services', industry: 'Investment Banking', companyName: 'Morgan Stanley' },
+        'BLK': { sector: 'Financial Services', industry: 'Asset Management', companyName: 'BlackRock Inc.' },
+        'SCHW': { sector: 'Financial Services', industry: 'Capital Markets', companyName: 'The Charles Schwab Corporation' },
+        'COST': { sector: 'Consumer Defensive', industry: 'Discount Stores', companyName: 'Costco Wholesale Corporation' },
+        'TGT': { sector: 'Consumer Defensive', industry: 'Discount Stores', companyName: 'Target Corporation' },
+        'LOW': { sector: 'Consumer Cyclical', industry: 'Home Improvement', companyName: "Lowe's Companies Inc." },
+        'SBUX': { sector: 'Consumer Cyclical', industry: 'Restaurants', companyName: 'Starbucks Corporation' },
+        'MCD': { sector: 'Consumer Cyclical', industry: 'Restaurants', companyName: "McDonald's Corporation" },
+        'YUM': { sector: 'Consumer Cyclical', industry: 'Restaurants', companyName: 'Yum! Brands Inc.' },
+        'CMG': { sector: 'Consumer Cyclical', industry: 'Restaurants', companyName: 'Chipotle Mexican Grill Inc.' },
+        'NOC': { sector: 'Industrial', industry: 'Aerospace & Defense', companyName: 'Northrop Grumman Corporation' },
+        'LMT': { sector: 'Industrial', industry: 'Aerospace & Defense', companyName: 'Lockheed Martin Corporation' },
+        'RTX': { sector: 'Industrial', industry: 'Aerospace & Defense', companyName: 'RTX Corporation' },
+        'GD': { sector: 'Industrial', industry: 'Aerospace & Defense', companyName: 'General Dynamics Corporation' },
+        'DE': { sector: 'Industrial', industry: 'Farm & Construction', companyName: 'Deere & Company' },
+        'MMM': { sector: 'Industrial', industry: 'Conglomerate', companyName: '3M Company' },
+        'HON': { sector: 'Industrial', industry: 'Conglomerate', companyName: 'Honeywell International Inc.' },
+        'UPS': { sector: 'Industrial', industry: 'Logistics', companyName: 'United Parcel Service Inc.' },
+        'FDX': { sector: 'Industrial', industry: 'Logistics', companyName: 'FedEx Corporation' },
+        'LUV': { sector: 'Industrial', industry: 'Airlines', companyName: 'Southwest Airlines Co.' },
+        'DAL': { sector: 'Industrial', industry: 'Airlines', companyName: 'Delta Air Lines Inc.' },
+        'UAL': { sector: 'Industrial', industry: 'Airlines', companyName: 'United Airlines Holdings Inc.' },
+        'AAL': { sector: 'Industrial', industry: 'Airlines', companyName: 'American Airlines Group Inc.' },
+        'CVX': { sector: 'Energy', industry: 'Oil & Gas', companyName: 'Chevron Corporation' },
+        'COP': { sector: 'Energy', industry: 'Oil & Gas', companyName: 'ConocoPhillips' },
+        'SLB': { sector: 'Energy', industry: 'Oil Services', companyName: 'Schlumberger Limited' },
+        'EOG': { sector: 'Energy', industry: 'Oil & Gas', companyName: 'EOG Resources Inc.' },
+        'MPC': { sector: 'Energy', industry: 'Oil & Gas Refining', companyName: 'Marathon Petroleum Corporation' },
+        'PSX': { sector: 'Energy', industry: 'Oil & Gas Refining', companyName: 'Phillips 66' },
+        'VLO': { sector: 'Energy', industry: 'Oil & Gas Refining', companyName: 'Valero Energy Corporation' },
+        'LIN': { sector: 'Materials', industry: 'Chemicals', companyName: 'Linde plc' },
+        'APD': { sector: 'Materials', industry: 'Chemicals', companyName: 'Air Products and Chemicals Inc.' },
+        'FCX': { sector: 'Materials', industry: 'Metals & Mining', companyName: 'Freeport-McMoRan Inc.' },
+        'NEM': { sector: 'Materials', industry: 'Metals & Mining', companyName: 'Newmont Corporation' },
+        'GOLD': { sector: 'Materials', industry: 'Metals & Mining', companyName: 'Barrick Gold Corporation' }
+      };
+
+      const commonStock = commonStocks[symbol.toUpperCase()];
+      if (commonStock) {
+        return commonStock;
+      }
+
       return {
         sector: 'Unknown',
         industry: 'Unknown',
         companyName: symbol
-      }
+      };
     }
-  }
+  };
 
   const parsePortfolioInput = async (input: string): Promise<PortfolioHolding[]> => {
     const holdings: PortfolioHolding[] = []
@@ -107,7 +252,7 @@ export default function PortfolioOptimizer() {
       const match = part.match(/([A-Za-z]+)\s+(\d+(?:\.\d+)?)%/)
       if (match) {
         const [, symbol, allocation] = match
-        const sectorInfo = await fetchStockSectorInfo(symbol.toUpperCase())
+        const sectorInfo = await getStockSectorAndIndustry(symbol.toUpperCase())
         
         holdings.push({
           symbol: symbol.toUpperCase(),
@@ -449,10 +594,10 @@ ${analysis.recommendations}
   return (
     <div className="space-y-6">
       {/* Input Section */}
-      <Card>
+      <Card className="bg-[#1a1a1a] border-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PieChartIcon className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <PieChartIcon className="h-5 w-5 text-emerald-400" />
             Portfolio Optimizer
           </CardTitle>
         </CardHeader>
@@ -463,6 +608,7 @@ ${analysis.recommendations}
               value={portfolioInput}
               onChange={(e) => setPortfolioInput(e.target.value)}
               rows={3}
+              className="bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500"
             />
             <div className="flex gap-2 flex-wrap">
               <Button 
@@ -487,7 +633,7 @@ ${analysis.recommendations}
                 {loading ? 'Optimizing...' : '🚀 Optimize Portfolio'}
               </Button>
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-400">
               Enter holdings in format: "SYMBOL allocation%, SYMBOL allocation%". The system will fetch real sector data and prices.
             </p>
           </div>
@@ -504,10 +650,10 @@ ${analysis.recommendations}
 
       {/* Loading State */}
       {loading && (
-        <Card>
+        <Card className="bg-[#1a1a1a] border-gray-800">
           <CardContent className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Fetching stock data and optimizing portfolio...</span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+            <span className="ml-3 text-gray-400">Fetching stock data and optimizing portfolio...</span>
           </CardContent>
         </Card>
       )}
@@ -517,11 +663,11 @@ ${analysis.recommendations}
         <>
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-600">VaR (95%)</p>
-                  <p className={`text-2xl font-bold ${analysis.var95 > 15 ? 'text-red-600' : 'text-green-600'}`}>
+                  <p className="text-sm text-gray-400">VaR (95%)</p>
+                  <p className={`text-2xl font-bold ${analysis.var95 > 15 ? 'text-red-400' : 'text-green-400'}`}>
                     {analysis.var95}%
                   </p>
                   <p className="text-xs text-gray-500">Value at Risk</p>
@@ -529,11 +675,11 @@ ${analysis.recommendations}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-600">Sharpe Ratio</p>
-                  <p className={`text-2xl font-bold ${analysis.sharpeRatio > 1 ? 'text-green-600' : analysis.sharpeRatio > 0.5 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  <p className="text-sm text-gray-400">Sharpe Ratio</p>
+                  <p className={`text-2xl font-bold ${analysis.sharpeRatio > 1 ? 'text-green-400' : analysis.sharpeRatio > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
                     {analysis.sharpeRatio}
                   </p>
                   <p className="text-xs text-gray-500">Risk-Adjusted Return</p>
@@ -541,10 +687,10 @@ ${analysis.recommendations}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-600">Diversification</p>
+                  <p className="text-sm text-gray-400">Diversification</p>
                   <Badge 
                     className={`
                       ${analysis.diversification === 'High' ? 'bg-green-500' : 
@@ -558,11 +704,11 @@ ${analysis.recommendations}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-sm text-gray-600">Concentration</p>
-                  <div className={`text-2xl font-bold ${analysis.concentrationRisk ? 'text-red-600' : 'text-green-600'}`}>
+                  <p className="text-sm text-gray-400">Concentration</p>
+                  <div className={`text-2xl font-bold ${analysis.concentrationRisk ? 'text-red-400' : 'text-green-400'}`}>
                     {analysis.concentrationRisk ? '⚠️' : '✅'}
                   </div>
                   <p className="text-xs text-gray-500">Risk Level</p>
@@ -572,18 +718,18 @@ ${analysis.recommendations}
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="analysis">Portfolio Analysis</TabsTrigger>
-              <TabsTrigger value="sectors">Sector Allocation</TabsTrigger>
-              <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 bg-[#1a1a1a] border border-gray-800">
+              <TabsTrigger value="analysis" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Portfolio Analysis</TabsTrigger>
+              <TabsTrigger value="sectors" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Sector Allocation</TabsTrigger>
+              <TabsTrigger value="recommendations" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Recommendations</TabsTrigger>
             </TabsList>
 
             <TabsContent value="analysis" className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Holdings Pie Chart */}
-                <Card>
+                <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardHeader>
-                    <CardTitle>Asset Allocation</CardTitle>
+                    <CardTitle className="text-white">Asset Allocation</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
@@ -611,9 +757,9 @@ ${analysis.recommendations}
                 </Card>
 
                 {/* Sector Allocation */}
-                <Card>
+                <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardHeader>
-                    <CardTitle>Sector Allocation</CardTitle>
+                    <CardTitle className="text-white">Sector Allocation</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
@@ -637,22 +783,22 @@ ${analysis.recommendations}
               </div>
 
               {/* Sector Breakdown */}
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
-                  <CardTitle>Sector Breakdown</CardTitle>
+                  <CardTitle className="text-white">Sector Breakdown</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {sectorData.map((sector, index) => (
-                      <div key={sector.sector} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div key={sector.sector} className="flex items-center justify-between p-4 border border-gray-800 rounded-lg bg-[#0a0a0a]">
                         <div className="flex items-center gap-3">
-                          <div className="text-gray-500">{sector.icon}</div>
+                          <div className="text-gray-400">{sector.icon}</div>
                           <div>
-                            <div className="font-medium">{sector.sector}</div>
-                            <div className="text-sm text-gray-500">{sector.allocation}%</div>
+                            <div className="font-medium text-white">{sector.sector}</div>
+                            <div className="text-sm text-gray-400">{sector.allocation}%</div>
                           </div>
                         </div>
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <div className="w-20 bg-gray-700 rounded-full h-2">
                           <div 
                             className="h-2 rounded-full"
                             style={{ 
@@ -668,19 +814,19 @@ ${analysis.recommendations}
               </Card>
 
               {/* Top Holdings */}
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
-                  <CardTitle>Top Holdings</CardTitle>
+                  <CardTitle className="text-white">Top Holdings</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     {analysis.topHoldings.map((holding, index) => (
-                      <div key={holding.symbol} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={holding.symbol} className="flex items-center justify-between p-3 bg-[#0a0a0a] border border-gray-800 rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: pieData[index]?.color }} />
                           <div>
-                            <span className="font-medium">{holding.symbol}</span>
-                            <div className="text-sm text-gray-500">{holding.sector}</div>
+                            <span className="font-medium text-white">{holding.symbol}</span>
+                            <div className="text-sm text-gray-400">{holding.sector}</div>
                           </div>
                         </div>
                         <Badge variant="secondary">{holding.allocation}%</Badge>
@@ -694,21 +840,21 @@ ${analysis.recommendations}
             <TabsContent value="sectors">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Detailed Sector Analysis */}
-                <Card>
+                <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardHeader>
-                    <CardTitle>Sector Allocation Details</CardTitle>
+                    <CardTitle className="text-white">Sector Allocation Details</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       {sectorData.map((sector) => (
-                        <div key={sector.sector} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div key={sector.sector} className="flex items-center justify-between p-3 border border-gray-800 rounded-lg bg-[#0a0a0a]">
                           <div className="flex items-center gap-3">
-                            <div className="text-gray-500">{sector.icon}</div>
-                            <span className="font-medium">{sector.sector}</span>
+                            <div className="text-gray-400">{sector.icon}</div>
+                            <span className="font-medium text-white">{sector.sector}</span>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="font-medium">{sector.allocation}%</span>
-                            <div className="w-32 bg-gray-200 rounded-full h-2">
+                            <span className="font-medium text-white">{sector.allocation}%</span>
+                            <div className="w-32 bg-gray-700 rounded-full h-2">
                               <div 
                                 className="h-2 rounded-full"
                                 style={{ 
@@ -725,21 +871,21 @@ ${analysis.recommendations}
                 </Card>
 
                 {/* Industry Breakdown */}
-                <Card>
+                <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardHeader>
-                    <CardTitle>Industry Breakdown</CardTitle>
+                    <CardTitle className="text-white">Industry Breakdown</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       {industryData.map((industry, index) => (
                         <div key={industry.industry} className="flex items-center justify-between">
                           <div className="flex-1">
-                            <div className="font-medium text-sm">{industry.industry}</div>
-                            <div className="text-xs text-gray-500">{industry.sector}</div>
+                            <div className="font-medium text-sm text-white">{industry.industry}</div>
+                            <div className="text-xs text-gray-400">{industry.sector}</div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-medium text-sm">{industry.allocation}%</span>
-                            <div className="w-24 bg-gray-200 rounded-full h-2">
+                            <span className="font-medium text-sm text-white">{industry.allocation}%</span>
+                            <div className="w-24 bg-gray-700 rounded-full h-2">
                               <div 
                                 className="h-2 rounded-full"
                                 style={{ 
@@ -758,19 +904,19 @@ ${analysis.recommendations}
             </TabsContent>
 
             <TabsContent value="recommendations">
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
-                  <CardTitle>Portfolio Recommendations</CardTitle>
+                  <CardTitle className="text-white">Portfolio Recommendations</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="prose max-w-none">
-                    <div className="whitespace-pre-wrap text-gray-700 bg-gray-50 p-4 rounded-lg">
+                    <div className="whitespace-pre-wrap text-gray-300 bg-[#0a0a0a] border border-gray-800 p-4 rounded-lg">
                       {analysis.recommendations}
                     </div>
                   </div>
                   
                   <div className="flex justify-between items-center pt-4">
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-400">
                       Analysis generated on {new Date().toLocaleDateString()}
                     </div>
                     <Button onClick={exportReport} className="flex items-center gap-2">

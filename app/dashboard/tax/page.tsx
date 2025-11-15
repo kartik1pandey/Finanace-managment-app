@@ -331,10 +331,10 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading tax calculator...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-emerald-500 mx-auto mb-4" />
+          <p className="text-gray-400">Loading tax calculator...</p>
         </div>
       </div>
     );
@@ -362,14 +362,14 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
   })) || [];
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
+    <div className="space-y-6 p-6 bg-[#0a0a0a] min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
             Tax Planning
           </h1>
-          <p className="text-gray-600 mt-2">Calculate your tax and get AI-powered savings insights</p>
+          <p className="text-gray-400 mt-2">Calculate your tax and get AI-powered savings insights</p>
         </div>
         <Badge variant="outline" className="text-lg px-4 py-2">
           FY 2024-25
@@ -384,13 +384,13 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
       )}
 
       {/* Regime Selector */}
-      <Card className="border-2 border-blue-200">
+      <Card className="border-2 border-emerald-800 bg-[#1a1a1a]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Calculator className="h-5 w-5 text-emerald-400" />
             Select Tax Regime
           </CardTitle>
-          <CardDescription>Choose between old and new tax regime</CardDescription>
+          <CardDescription className="text-gray-400">Choose between old and new tax regime</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
@@ -413,77 +413,77 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
       </Card>
 
       {/* Income Input Section */}
-      <Card>
+      <Card className="bg-[#1a1a1a] border-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IndianRupee className="h-5 w-5 text-green-600" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <IndianRupee className="h-5 w-5 text-emerald-400" />
             Income Details
           </CardTitle>
-          <CardDescription>Enter all your income sources for the financial year</CardDescription>
+          <CardDescription className="text-gray-400">Enter all your income sources for the financial year</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Annual Salary</label>
+              <label className="block text-sm font-medium mb-2 text-gray-400">Annual Salary</label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                 <input
                   type="number"
                   value={income.salary || ''}
                   onChange={(e) => setIncome({ ...income, salary: parseFloat(e.target.value) || 0 })}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                   placeholder="0"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Other Income</label>
+              <label className="block text-sm font-medium mb-2 text-gray-400">Other Income</label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                 <input
                   type="number"
                   value={income.otherIncome || ''}
                   onChange={(e) => setIncome({ ...income, otherIncome: parseFloat(e.target.value) || 0 })}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                   placeholder="0"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Capital Gains</label>
+              <label className="block text-sm font-medium mb-2 text-gray-400">Capital Gains</label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                 <input
                   type="number"
                   value={income.capitalGains || ''}
                   onChange={(e) => setIncome({ ...income, capitalGains: parseFloat(e.target.value) || 0 })}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                   placeholder="0"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Rental Income</label>
+              <label className="block text-sm font-medium mb-2 text-gray-400">Rental Income</label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                 <input
                   type="number"
                   value={income.rentalIncome || ''}
                   onChange={(e) => setIncome({ ...income, rentalIncome: parseFloat(e.target.value) || 0 })}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                   placeholder="0"
                 />
               </div>
             </div>
           </div>
 
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+          <div className="mt-4 p-4 bg-[#0a0a0a] border border-gray-800 rounded-lg">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-700">Total Gross Income</span>
-              <span className="text-2xl font-bold text-blue-600">
+              <span className="font-semibold text-gray-400">Total Gross Income</span>
+              <span className="text-2xl font-bold text-emerald-400">
                 {formatCurrency(income.salary + income.otherIncome + income.capitalGains + income.rentalIncome)}
               </span>
             </div>
@@ -493,28 +493,28 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
 
       {/* Deductions Section (Only for Old Regime) */}
       {regime === 'old' && (
-        <Card>
+        <Card className="bg-[#1a1a1a] border-gray-800">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-orange-600" />
+            <CardTitle className="flex items-center gap-2 text-white">
+              <TrendingDown className="h-5 w-5 text-orange-400" />
               Tax Deductions
             </CardTitle>
-            <CardDescription>Enter your eligible deductions under old regime</CardDescription>
+            <CardDescription className="text-gray-400">Enter your eligible deductions under old regime</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-gray-400">
                   Section 80C (Max ₹1.5L)
                   <span className="text-xs text-gray-500 ml-2">PPF, ELSS, LIC, etc.</span>
                 </label>
                 <div className="relative">
-                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <input
                     type="number"
                     value={deductions.section80C || ''}
                     onChange={(e) => setDeductions({ ...deductions, section80C: Math.min(parseFloat(e.target.value) || 0, 150000) })}
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                     placeholder="0"
                     max="150000"
                   />
@@ -522,17 +522,17 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-gray-400">
                   Section 80D (Max ₹25K)
                   <span className="text-xs text-gray-500 ml-2">Health Insurance</span>
                 </label>
                 <div className="relative">
-                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <input
                     type="number"
                     value={deductions.section80D || ''}
                     onChange={(e) => setDeductions({ ...deductions, section80D: Math.min(parseFloat(e.target.value) || 0, 25000) })}
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                     placeholder="0"
                     max="25000"
                   />
@@ -540,17 +540,17 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-gray-400">
                   Home Loan Interest (Max ₹2L)
                   <span className="text-xs text-gray-500 ml-2">Section 24</span>
                 </label>
                 <div className="relative">
-                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <input
                     type="number"
                     value={deductions.homeLoanInterest || ''}
                     onChange={(e) => setDeductions({ ...deductions, homeLoanInterest: Math.min(parseFloat(e.target.value) || 0, 200000) })}
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                     placeholder="0"
                     max="200000"
                   />
@@ -558,17 +558,17 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-gray-400">
                   NPS (Max ₹50K)
                   <span className="text-xs text-gray-500 ml-2">Section 80CCD(1B)</span>
                 </label>
                 <div className="relative">
-                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <input
                     type="number"
                     value={deductions.nps || ''}
                     onChange={(e) => setDeductions({ ...deductions, nps: Math.min(parseFloat(e.target.value) || 0, 50000) })}
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                     placeholder="0"
                     max="50000"
                   />
@@ -576,24 +576,24 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Other Deductions</label>
+                <label className="block text-sm font-medium mb-2 text-gray-400">Other Deductions</label>
                 <div className="relative">
-                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <input
                     type="number"
                     value={deductions.other || ''}
                     onChange={(e) => setDeductions({ ...deductions, other: parseFloat(e.target.value) || 0 })}
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white"
                     placeholder="0"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 p-4 bg-orange-50 rounded-lg">
+            <div className="mt-4 p-4 bg-[#0a0a0a] border border-gray-800 rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-700">Total Deductions</span>
-                <span className="text-2xl font-bold text-orange-600">
+                <span className="font-semibold text-gray-400">Total Deductions</span>
+                <span className="text-2xl font-bold text-orange-400">
                   {formatCurrency(deductions.section80C + deductions.section80D + deductions.homeLoanInterest + deductions.nps + deductions.other)}
                 </span>
               </div>
@@ -627,45 +627,45 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="border-2 border-blue-200">
+            <Card className="border-2 border-emerald-800 bg-[#1a1a1a]">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Gross Income</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-400">Gross Income</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-emerald-400">
                   {formatCurrency(taxCalculation.grossIncome)}
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-orange-200">
+            <Card className="border-2 border-orange-800 bg-[#1a1a1a]">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Deductions</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-400">Deductions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-2xl font-bold text-orange-400">
                   {formatCurrency(taxCalculation.deductions)}
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-purple-200">
+            <Card className="border-2 border-purple-800 bg-[#1a1a1a]">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Taxable Income</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-400">Taxable Income</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-purple-400">
                   {formatCurrency(taxCalculation.taxableIncome)}
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-red-200">
+            <Card className="border-2 border-red-800 bg-[#1a1a1a]">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Tax Payable</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-400">Tax Payable</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-red-400">
                   {formatCurrency(taxCalculation.taxAmount)}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
@@ -679,10 +679,10 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Income Breakdown */}
             {incomeBreakdown.length > 0 && (
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PieChart className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <PieChart className="h-5 w-5 text-emerald-400" />
                     Income Breakdown
                   </CardTitle>
                 </CardHeader>
@@ -713,10 +713,10 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
             )}
 
             {/* Tax Slab Breakdown */}
-            <Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <BarChart3 className="h-5 w-5 text-emerald-400" />
                   Tax Slab Breakdown
                 </CardTitle>
               </CardHeader>
@@ -739,37 +739,37 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
           </div>
 
           {/* Detailed Breakdown Table */}
-          <Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
             <CardHeader>
-              <CardTitle>Detailed Tax Calculation</CardTitle>
+              <CardTitle className="text-white">Detailed Tax Calculation</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-3">Tax Slab</th>
-                      <th className="text-right p-3">Income in Slab</th>
-                      <th className="text-right p-3">Tax Rate</th>
-                      <th className="text-right p-3">Tax Amount</th>
+                    <tr className="border-b border-gray-700">
+                      <th className="text-left p-3 text-gray-400">Tax Slab</th>
+                      <th className="text-right p-3 text-gray-400">Income in Slab</th>
+                      <th className="text-right p-3 text-gray-400">Tax Rate</th>
+                      <th className="text-right p-3 text-gray-400">Tax Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {taxCalculation.breakdown.map((item, index) => (
-                      <tr key={index} className="border-b hover:bg-gray-50">
-                        <td className="p-3 font-medium">{item.slab}</td>
-                        <td className="text-right p-3">{formatCurrency(item.amount)}</td>
-                        <td className="text-right p-3">
+                      <tr key={index} className="border-b border-gray-800 hover:bg-[#0a0a0a]">
+                        <td className="p-3 font-medium text-white">{item.slab}</td>
+                        <td className="text-right p-3 text-gray-300">{formatCurrency(item.amount)}</td>
+                        <td className="text-right p-3 text-gray-300">
                           {item.tax === 0 ? 'Nil' : `${((item.tax / item.amount) * 100).toFixed(0)}%`}
                         </td>
-                        <td className="text-right p-3 font-semibold text-red-600">
+                        <td className="text-right p-3 font-semibold text-red-400">
                           {formatCurrency(item.tax)}
                         </td>
                       </tr>
                     ))}
-                    <tr className="bg-gray-100 font-bold">
-                      <td className="p-3" colSpan={3}>Total Tax (including 4% cess)</td>
-                      <td className="text-right p-3 text-red-600">
+                    <tr className="bg-[#0a0a0a] font-bold border-t-2 border-gray-700">
+                      <td className="p-3 text-white" colSpan={3}>Total Tax (including 4% cess)</td>
+                      <td className="text-right p-3 text-red-400">
                         {formatCurrency(taxCalculation.taxAmount)}
                       </td>
                     </tr>
@@ -780,13 +780,13 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
           </Card>
 
           {/* AI Insights Section */}
-          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+          <Card className="border-2 border-purple-800 bg-[#1a1a1a]">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-purple-600" />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Lightbulb className="h-5 w-5 text-purple-400" />
                 AI-Powered Tax Saving Insights
               </CardTitle>
-              <CardDescription>Get personalized recommendations to optimize your tax</CardDescription>
+              <CardDescription className="text-gray-400">Get personalized recommendations to optimize your tax</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {!aiInsights ? (
@@ -794,7 +794,7 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
                   onClick={generateAIInsights}
                   disabled={generatingInsights || !OPENROUTER_API_KEY}
                   size="lg"
-                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                 >
                   {generatingInsights ? (
                     <>
@@ -810,9 +810,9 @@ Keep it concise, actionable, and specific to Indian tax laws (FY 2024-25). Use b
                 </Button>
               ) : (
                 <div className="space-y-4">
-                  <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <div className="bg-[#0a0a0a] border border-gray-800 p-6 rounded-lg">
                     <div className="prose prose-sm max-w-none">
-                      <div className="whitespace-pre-wrap">{aiInsights}</div>
+                      <div className="whitespace-pre-wrap text-gray-300">{aiInsights}</div>
                     </div>
                   </div>
                   <Button

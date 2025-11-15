@@ -42,22 +42,22 @@ export default function BudgetAnalysis({ data }: BudgetAnalysisProps) {
     <div className="space-y-6">
       {/* Budget Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Budget</h3>
-          <p className="text-2xl font-bold text-blue-600">₹{budget_summary.total_budget.toLocaleString()}</p>
+        <div className="bg-[#1a1a1a] p-6 rounded-lg shadow-sm border border-gray-800">
+          <h3 className="text-sm font-medium text-gray-400 mb-2">Total Budget</h3>
+          <p className="text-2xl font-bold text-blue-400">₹{budget_summary.total_budget.toLocaleString()}</p>
           <p className="text-sm text-gray-500">6 months</p>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Actual Spending</h3>
-          <p className="text-2xl font-bold text-purple-600">₹{budget_summary.actual_spending.toLocaleString()}</p>
+        <div className="bg-[#1a1a1a] p-6 rounded-lg shadow-sm border border-gray-800">
+          <h3 className="text-sm font-medium text-gray-400 mb-2">Actual Spending</h3>
+          <p className="text-2xl font-bold text-purple-400">₹{budget_summary.actual_spending.toLocaleString()}</p>
           <p className="text-sm text-gray-500">6 months</p>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Remaining Budget</h3>
+        <div className="bg-[#1a1a1a] p-6 rounded-lg shadow-sm border border-gray-800">
+          <h3 className="text-sm font-medium text-gray-400 mb-2">Remaining Budget</h3>
           <p className={`text-2xl font-bold ${
-            budget_summary.remaining_budget >= 0 ? 'text-green-600' : 'text-red-600'
+            budget_summary.remaining_budget >= 0 ? 'text-green-500' : 'text-red-500'
           }`}>
             ₹{Math.abs(budget_summary.remaining_budget).toLocaleString()}
             {budget_summary.remaining_budget < 0 && ' Over'}
@@ -65,10 +65,10 @@ export default function BudgetAnalysis({ data }: BudgetAnalysisProps) {
           <p className="text-sm text-gray-500">Balance</p>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Budget Utilization</h3>
+        <div className="bg-[#1a1a1a] p-6 rounded-lg shadow-sm border border-gray-800">
+          <h3 className="text-sm font-medium text-gray-400 mb-2">Budget Utilization</h3>
           <p className={`text-2xl font-bold ${
-            budget_summary.budget_utilization <= 100 ? 'text-green-600' : 'text-red-600'
+            budget_summary.budget_utilization <= 100 ? 'text-green-500' : 'text-red-500'
           }`}>
             {budget_summary.budget_utilization}%
           </p>
@@ -77,8 +77,8 @@ export default function BudgetAnalysis({ data }: BudgetAnalysisProps) {
       </div>
 
       {/* Budget vs Actual Chart */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Budget vs Actual Spending</h3>
+      <div className="bg-[#1a1a1a] p-6 rounded-lg shadow-sm border border-gray-800">
+        <h3 className="text-lg font-semibold text-white mb-4">Budget vs Actual Spending</h3>
         <div className="h-96">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={budgetData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
@@ -99,8 +99,8 @@ export default function BudgetAnalysis({ data }: BudgetAnalysisProps) {
       </div>
 
       {/* Budget Status by Category */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Budget Status by Category</h3>
+      <div className="bg-[#1a1a1a] p-6 rounded-lg shadow-sm border border-gray-800">
+        <h3 className="text-lg font-semibold text-white mb-4">Budget Status by Category</h3>
         <div className="space-y-4">
           {category_analysis.map((category, index) => (
             <div key={category.name} className="flex items-center justify-between p-4 border rounded-lg">

@@ -63,19 +63,19 @@ export default function InvestmentsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-[#0a0a0a] min-h-screen">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Investment Portfolio</h1>
-          <p className="text-gray-600">Advanced analytics and AI-powered insights</p>
+          <h1 className="text-3xl font-bold text-white">Investment Portfolio</h1>
+          <p className="text-gray-400">Advanced analytics and AI-powered insights</p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="explorer">Stock Explorer</TabsTrigger>
-          <TabsTrigger value="optimizer">Optimizer</TabsTrigger>
-          <TabsTrigger value="mutual-funds">Mutual Funds</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 bg-[#1a1a1a] border border-gray-800">
+          <TabsTrigger value="explorer" className="data-[state=active]:bg-emerald-600 text-white">Stock Explorer</TabsTrigger>
+          <TabsTrigger value="optimizer" className="data-[state=active]:bg-emerald-600 text-white">Optimizer</TabsTrigger>
+          <TabsTrigger value="mutual-funds" className="data-[state=active]:bg-emerald-600 text-white">Mutual Funds</TabsTrigger>
 
         </TabsList>
 
@@ -88,7 +88,7 @@ export default function InvestmentsPage() {
         </TabsContent>
 
         <TabsContent value="mutual-funds">
-          {loading ? <div>Loading...</div> : <MutualFundsList funds={mutualFunds} />}
+          {loading ? <div className="text-gray-400">Loading...</div> : <MutualFundsList funds={mutualFunds} />}
         </TabsContent>
 
 

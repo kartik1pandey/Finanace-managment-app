@@ -107,10 +107,10 @@ export default function CashFlowPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="p-8 flex items-center justify-center min-h-screen bg-[#0a0a0a]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading cash flow data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+          <p className="mt-4 text-gray-400">Loading cash flow data...</p>
         </div>
       </div>
     )
@@ -119,18 +119,18 @@ export default function CashFlowPage() {
   const { totalAssets, totalLiabilities, netPosition } = calculateTotals()
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#0a0a0a] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
+            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')} className="border-gray-800 bg-[#1a1a1a] text-white hover:bg-gray-800">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Cash Flow Analysis</h1>
-              <p className="text-gray-600">Your financial inflows and outflows</p>
+              <h1 className="text-3xl font-bold text-white">Cash Flow Analysis</h1>
+              <p className="text-gray-400">Your financial inflows and outflows</p>
             </div>
           </div>
           <Button onClick={handleLogout} variant="destructive">
@@ -150,20 +150,20 @@ export default function CashFlowPage() {
           <>
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-0">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center text-blue-100">
+                  <CardTitle className="text-sm font-medium flex items-center text-emerald-100">
                     <DollarSign className="h-4 w-4 mr-2" />
                     Net Worth
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{formatCurrency(financialData.summary.net_worth)}</div>
-                  <p className="text-xs text-blue-100 mt-1">Total financial position</p>
+                  <p className="text-xs text-emerald-100 mt-1">Total financial position</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+              <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center text-green-100">
                     <TrendingUp className="h-4 w-4 mr-2" />
@@ -176,7 +176,7 @@ export default function CashFlowPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white">
+              <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center text-red-100">
                     <TrendingDown className="h-4 w-4 mr-2" />
@@ -192,10 +192,10 @@ export default function CashFlowPage() {
 
             {/* Assets Breakdown */}
             {financialData.assets && financialData.assets.length > 0 && (
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
                     Assets Breakdown (Inflows)
                   </CardTitle>
                 </CardHeader>
@@ -204,32 +204,32 @@ export default function CashFlowPage() {
                     {financialData.assets.map((asset, idx) => {
                       const percentage = (asset.value / totalAssets * 100).toFixed(1)
                       return (
-                        <div key={idx} className="flex items-center justify-between p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                        <div key={idx} className="flex items-center justify-between p-4 bg-green-950/20 border border-green-800 rounded-lg hover:bg-green-950/30 transition-colors">
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-gray-900">
+                              <span className="font-medium text-white">
                                 {asset.type.replace(/ASSET_TYPE_|_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </span>
-                              <Badge variant="outline" className="ml-2">{percentage}%</Badge>
+                              <Badge variant="outline" className="ml-2 border-green-700 text-green-400">{percentage}%</Badge>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-gray-800 rounded-full h-2">
                               <div 
-                                className="bg-green-600 h-2 rounded-full transition-all duration-500" 
+                                className="bg-green-500 h-2 rounded-full transition-all duration-500" 
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
                           </div>
                           <div className="ml-6 text-right">
-                            <span className="text-xl font-bold text-green-700">
+                            <span className="text-xl font-bold text-green-400">
                               {formatCurrency(asset.value)}
                             </span>
                           </div>
                         </div>
                       )
                     })}
-                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
-                      <span className="font-semibold text-gray-900">Total Assets</span>
-                      <span className="text-2xl font-bold text-green-700">{formatCurrency(totalAssets)}</span>
+                    <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center">
+                      <span className="font-semibold text-white">Total Assets</span>
+                      <span className="text-2xl font-bold text-green-400">{formatCurrency(totalAssets)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -238,10 +238,10 @@ export default function CashFlowPage() {
 
             {/* Liabilities Breakdown */}
             {financialData.liabilities && financialData.liabilities.length > 0 && (
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingDown className="h-5 w-5 text-red-600" />
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <TrendingDown className="h-5 w-5 text-red-500" />
                     Liabilities Breakdown (Outflows)
                   </CardTitle>
                 </CardHeader>
@@ -250,32 +250,32 @@ export default function CashFlowPage() {
                     {financialData.liabilities.map((liability, idx) => {
                       const percentage = (liability.value / totalLiabilities * 100).toFixed(1)
                       return (
-                        <div key={idx} className="flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                        <div key={idx} className="flex items-center justify-between p-4 bg-red-950/20 border border-red-800 rounded-lg hover:bg-red-950/30 transition-colors">
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-gray-900">
+                              <span className="font-medium text-white">
                                 {liability.type.replace(/LIABILITY_TYPE_|_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </span>
-                              <Badge variant="outline" className="ml-2">{percentage}%</Badge>
+                              <Badge variant="outline" className="ml-2 border-red-700 text-red-400">{percentage}%</Badge>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-gray-800 rounded-full h-2">
                               <div 
-                                className="bg-red-600 h-2 rounded-full transition-all duration-500" 
+                                className="bg-red-500 h-2 rounded-full transition-all duration-500" 
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
                           </div>
                           <div className="ml-6 text-right">
-                            <span className="text-xl font-bold text-red-700">
+                            <span className="text-xl font-bold text-red-400">
                               {formatCurrency(liability.value)}
                             </span>
                           </div>
                         </div>
                       )
                     })}
-                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
-                      <span className="font-semibold text-gray-900">Total Liabilities</span>
-                      <span className="text-2xl font-bold text-red-700">{formatCurrency(totalLiabilities)}</span>
+                    <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center">
+                      <span className="font-semibold text-white">Total Liabilities</span>
+                      <span className="text-2xl font-bold text-red-400">{formatCurrency(totalLiabilities)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -283,23 +283,23 @@ export default function CashFlowPage() {
             )}
 
             {/* Net Position Summary */}
-            <Card className={`border-2 ${netPosition >= 0 ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+            <Card className={`border-2 ${netPosition >= 0 ? 'border-green-500 bg-green-950/20' : 'border-red-500 bg-red-950/20'}`}>
               <CardHeader>
-                <CardTitle>Net Cash Flow Position</CardTitle>
+                <CardTitle className="text-white">Net Cash Flow Position</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center p-4 bg-white rounded-lg">
-                    <p className="text-sm text-gray-600 mb-2">Total Inflows (Assets)</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(totalAssets)}</p>
+                  <div className="text-center p-4 bg-[#0a0a0a] border border-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-400 mb-2">Total Inflows (Assets)</p>
+                    <p className="text-2xl font-bold text-green-500">{formatCurrency(totalAssets)}</p>
                   </div>
-                  <div className="text-center p-4 bg-white rounded-lg">
-                    <p className="text-sm text-gray-600 mb-2">Total Outflows (Liabilities)</p>
-                    <p className="text-2xl font-bold text-red-600">{formatCurrency(totalLiabilities)}</p>
+                  <div className="text-center p-4 bg-[#0a0a0a] border border-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-400 mb-2">Total Outflows (Liabilities)</p>
+                    <p className="text-2xl font-bold text-red-500">{formatCurrency(totalLiabilities)}</p>
                   </div>
-                  <div className="text-center p-4 bg-white rounded-lg">
-                    <p className="text-sm text-gray-600 mb-2">Net Position</p>
-                    <p className={`text-2xl font-bold ${netPosition >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className="text-center p-4 bg-[#0a0a0a] border border-gray-800 rounded-lg">
+                    <p className="text-sm text-gray-400 mb-2">Net Position</p>
+                    <p className={`text-2xl font-bold ${netPosition >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {formatCurrency(netPosition)}
                     </p>
                   </div>
@@ -308,29 +308,29 @@ export default function CashFlowPage() {
             </Card>
 
             {/* Insights Card */}
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-blue-950/30 border-blue-800">
               <CardHeader>
-                <CardTitle className="text-blue-900">Financial Insights</CardTitle>
+                <CardTitle className="text-blue-400">Financial Insights</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
-                    <p className="text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
+                    <p className="text-gray-300">
                       <strong>Asset-to-Liability Ratio:</strong> {totalLiabilities > 0 ? (totalAssets / totalLiabilities).toFixed(2) : '∞'}
                       {totalLiabilities > 0 && (totalAssets / totalLiabilities) > 2 && ' - Excellent! Your assets significantly exceed liabilities.'}
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
-                    <p className="text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
+                    <p className="text-gray-300">
                       <strong>Liability Percentage:</strong> {totalAssets > 0 ? ((totalLiabilities / totalAssets) * 100).toFixed(1) : '0'}% of total assets
                       {totalAssets > 0 && (totalLiabilities / totalAssets) < 0.3 && ' - Great! Keep your debt low relative to assets.'}
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
-                    <p className="text-gray-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
+                    <p className="text-gray-300">
                       <strong>Diversification:</strong> You have {financialData.assets?.length || 0} different asset types
                       {(financialData.assets?.length || 0) >= 4 && ' - Good diversification across multiple categories.'}
                     </p>
@@ -342,12 +342,12 @@ export default function CashFlowPage() {
         )}
 
         {(!financialData || !financialData.mcp_data_available) && !loading && (
-          <Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Cash Flow Data Available</h3>
-              <p className="text-gray-600">Please connect your financial accounts to view cash flow analysis.</p>
-              <Button className="mt-4" onClick={() => router.push('/')}>
+              <h3 className="text-lg font-semibold text-white mb-2">No Cash Flow Data Available</h3>
+              <p className="text-gray-400">Please connect your financial accounts to view cash flow analysis.</p>
+              <Button className="mt-4 bg-emerald-600 hover:bg-emerald-700" onClick={() => router.push('/')}>
                 Connect Accounts
               </Button>
             </CardContent>

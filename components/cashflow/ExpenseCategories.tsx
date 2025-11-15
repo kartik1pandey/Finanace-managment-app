@@ -22,8 +22,8 @@ export default function ExpenseCategories({ data }: ExpenseCategoriesProps) {
   return (
     <div className="space-y-6">
       {/* Pie Chart */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Spending Distribution</h3>
+      <div className="bg-[#1a1a1a] p-6 rounded-lg shadow-sm border border-gray-800">
+        <h3 className="text-lg font-semibold text-white mb-4">Spending Distribution</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -52,8 +52,8 @@ export default function ExpenseCategories({ data }: ExpenseCategoriesProps) {
       </div>
 
       {/* Category Breakdown */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Analysis</h3>
+      <div className="bg-[#1a1a1a] p-6 rounded-lg shadow-sm border border-gray-800">
+        <h3 className="text-lg font-semibold text-white mb-4">Category Analysis</h3>
         <div className="space-y-4">
           {data.map((category, index) => (
             <div key={category.name} className="flex items-center justify-between">
@@ -64,8 +64,8 @@ export default function ExpenseCategories({ data }: ExpenseCategoriesProps) {
                 ></div>
                 <div className="flex-1">
                   <div className="flex justify-between">
-                    <span className="font-medium text-gray-900">{category.name}</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-medium text-white">{category.name}</span>
+                    <span className="font-semibold text-white">
                       ₹{category.amount.toLocaleString()}
                     </span>
                   </div>
@@ -96,8 +96,8 @@ export default function ExpenseCategories({ data }: ExpenseCategoriesProps) {
         
         <div className="mt-6 pt-6 border-t">
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-gray-900">Total Spending (6 months)</span>
-            <span className="font-bold text-lg text-gray-900">
+            <span className="font-semibold text-white">Total Spending (6 months)</span>
+            <span className="font-bold text-lg text-white">
               ₹{totalSpending.toLocaleString()}
             </span>
           </div>

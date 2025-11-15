@@ -451,30 +451,30 @@ export default function MultimodalAdvisorPage() {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+    <div className="p-6 h-full flex flex-col bg-[#0a0a0a] min-h-screen">
       <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-[#1a1a1a] rounded-xl shadow-lg border border-gray-800 p-6 mb-6">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent mb-2">
                 Multimodal AI Advisor
               </h1>
-              <p className="text-gray-600 flex items-center gap-2">
+              <p className="text-gray-400 flex items-center gap-2">
                 <span>💬 Chat</span>
                 <span>•</span>
                 <span>🎤 Voice</span>
                 <span>•</span>
                 <span>📁 Files</span>
                 <span>•</span>
-                <span className="text-green-600 font-medium">Context Aware</span>
+                <span className="text-emerald-400 font-medium">Context Aware</span>
               </p>
             </div>
             <Button 
               onClick={handleClearHistory} 
               variant="outline" 
               size="sm" 
-              className="hover:bg-gray-100"
+              className="hover:bg-[#0a0a0a] border-gray-700 text-gray-300"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Clear History
@@ -483,21 +483,21 @@ export default function MultimodalAdvisorPage() {
 
           {financialContext && financialContext.mcp_data_available && (
             <div className="mt-4 grid grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                <p className="text-xs text-gray-600 mb-1">Net Worth</p>
-                <p className="text-xl font-bold text-blue-700">
+              <div className="bg-[#0a0a0a] p-4 rounded-lg border border-emerald-800">
+                <p className="text-xs text-gray-400 mb-1">Net Worth</p>
+                <p className="text-xl font-bold text-emerald-400">
                   ₹{financialContext.summary.net_worth.toLocaleString('en-IN')}
                 </p>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                <p className="text-xs text-gray-600 mb-1">Total Assets</p>
-                <p className="text-xl font-bold text-green-700">
+              <div className="bg-[#0a0a0a] p-4 rounded-lg border border-green-800">
+                <p className="text-xs text-gray-400 mb-1">Total Assets</p>
+                <p className="text-xl font-bold text-green-400">
                   ₹{financialContext.summary.total_assets.toLocaleString('en-IN')}
                 </p>
               </div>
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
-                <p className="text-xs text-gray-600 mb-1">Total Liabilities</p>
-                <p className="text-xl font-bold text-orange-700">
+              <div className="bg-[#0a0a0a] p-4 rounded-lg border border-red-800">
+                <p className="text-xs text-gray-400 mb-1">Total Liabilities</p>
+                <p className="text-xl font-bold text-red-400">
                   ₹{financialContext.summary.total_liabilities.toLocaleString('en-IN')}
                 </p>
               </div>
@@ -506,15 +506,15 @@ export default function MultimodalAdvisorPage() {
         </div>
 
         {/* Chat Container */}
-        <div className="flex-1 bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-4 overflow-y-auto flex flex-col max-h-[calc(100vh-400px)]">
+        <div className="flex-1 bg-[#1a1a1a] rounded-xl shadow-lg border border-gray-800 p-6 mb-4 overflow-y-auto flex flex-col max-h-[calc(100vh-400px)]">
           <div className="space-y-4 flex-1">
             {messages.map((message) => (
               <div key={message.id}>
                 <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-xs lg:max-w-3xl px-5 py-3 rounded-2xl ${
                     message.sender === 'user' 
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md' 
-                      : 'bg-gray-50 text-gray-900 border border-gray-200 shadow-sm'
+                      ? 'bg-gradient-to-r from-emerald-600 to-blue-600 text-white shadow-md' 
+                      : 'bg-[#0a0a0a] text-gray-300 border border-gray-800 shadow-sm'
                   }`}>
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.text}</p>
                     {message.attachments && message.attachments.length > 0 && (
@@ -528,7 +528,7 @@ export default function MultimodalAdvisorPage() {
                       </div>
                     )}
                     <p className={`text-xs mt-2 ${
-                      message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'
+                      message.sender === 'user' ? 'text-emerald-100' : 'text-gray-500'
                     }`}>
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -542,7 +542,7 @@ export default function MultimodalAdvisorPage() {
                         key={idx}
                         onClick={() => setInput(suggestion)}
                         disabled={isLoading}
-                        className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 hover:bg-gray-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-50 shadow-sm"
+                        className="text-xs bg-[#1a1a1a] text-gray-300 px-3 py-1.5 rounded-full border border-gray-700 hover:bg-[#0a0a0a] hover:border-emerald-500 hover:text-emerald-400 transition-all disabled:opacity-50 shadow-sm"
                       >
                         {suggestion}
                       </button>
@@ -554,14 +554,14 @@ export default function MultimodalAdvisorPage() {
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-50 px-5 py-3 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="bg-[#0a0a0a] px-5 py-3 rounded-2xl border border-gray-800 shadow-sm">
                   <div className="flex items-center space-x-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="text-sm text-gray-600">Processing...</span>
+                    <span className="text-sm text-gray-400">Processing...</span>
                   </div>
                 </div>
               </div>
@@ -572,25 +572,25 @@ export default function MultimodalAdvisorPage() {
 
         {/* File Upload Preview */}
         {uploadedFiles.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3 shadow-sm">
+          <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4 mb-3 shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-gray-700">📎 Attached Files ({uploadedFiles.length})</span>
+              <span className="text-sm font-semibold text-gray-300">📎 Attached Files ({uploadedFiles.length})</span>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setUploadedFiles([])} 
-                className="text-red-600 hover:bg-red-50"
+                className="text-red-400 hover:bg-red-950/30"
               >
                 Clear All
               </Button>
             </div>
             <div className="space-y-2">
               {uploadedFiles.map((file, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div key={idx} className="flex items-center justify-between bg-[#0a0a0a] p-3 rounded-lg border border-gray-800">
                   <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-blue-600" />
+                    <FileText className="h-5 w-5 text-emerald-400" />
                     <div>
-                      <span className="text-sm font-medium text-gray-900">{file.name}</span>
+                      <span className="text-sm font-medium text-white">{file.name}</span>
                       <span className="text-xs text-gray-500 ml-2">({formatFileSize(file.size)})</span>
                     </div>
                   </div>
@@ -598,7 +598,7 @@ export default function MultimodalAdvisorPage() {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => removeFile(idx)} 
-                    className="text-red-600 hover:bg-red-50"
+                    className="text-red-400 hover:bg-red-950/30"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -610,22 +610,22 @@ export default function MultimodalAdvisorPage() {
 
         {/* Audio Recording Preview */}
         {audioBlob && (
-          <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 mb-3 shadow-sm">
+          <div className="bg-[#1a1a1a] border border-red-800 rounded-xl p-4 mb-3 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-full">
-                  <Mic className="h-5 w-5 text-red-600" />
+                <div className="p-2 bg-red-950/30 rounded-full">
+                  <Mic className="h-5 w-5 text-red-400" />
                 </div>
                 <div>
-                  <span className="text-sm font-semibold text-gray-900">Voice message ready</span>
-                  <span className="text-xs text-gray-600 block">({formatFileSize(audioBlob.size)})</span>
+                  <span className="text-sm font-semibold text-white">Voice message ready</span>
+                  <span className="text-xs text-gray-400 block">({formatFileSize(audioBlob.size)})</span>
                 </div>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setAudioBlob(null)} 
-                className="text-red-600 hover:bg-red-100"
+                className="text-red-400 hover:bg-red-950/30"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -634,7 +634,7 @@ export default function MultimodalAdvisorPage() {
         )}
 
         {/* Input Area */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+        <div className="bg-[#1a1a1a] rounded-xl shadow-lg border border-gray-800 p-4">
           <div className="flex space-x-2">
             <input
               ref={fileInputRef}
@@ -650,9 +650,9 @@ export default function MultimodalAdvisorPage() {
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
               title="Upload files (CSV, Excel, PDF, TXT)"
-              className="hover:bg-blue-50 hover:border-blue-300 transition-all"
+              className="hover:bg-[#0a0a0a] hover:border-emerald-500 transition-all border-gray-700"
             >
-              <Paperclip className="h-5 w-5 text-gray-600" />
+              <Paperclip className="h-5 w-5 text-gray-400" />
             </Button>
             <Button
               variant={isRecording ? "destructive" : "outline"}
@@ -660,9 +660,9 @@ export default function MultimodalAdvisorPage() {
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isLoading}
               title={isRecording ? "Stop recording" : "Start voice recording"}
-              className={isRecording ? "animate-pulse" : "hover:bg-red-50 hover:border-red-300 transition-all"}
+              className={isRecording ? "animate-pulse" : "hover:bg-red-950/30 hover:border-red-500 transition-all border-gray-700"}
             >
-              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5 text-gray-600" />}
+              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5 text-gray-400" />}
             </Button>
             <input
               type="text"
@@ -670,13 +670,13 @@ export default function MultimodalAdvisorPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type, speak, or upload files..."
-              className="flex-1 px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-all"
+              className="flex-1 px-5 py-3 bg-[#0a0a0a] border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50 transition-all text-white placeholder-gray-500"
               disabled={isLoading || !sessionId}
             />
             <Button
               onClick={handleSend}
               disabled={isLoading || (!input.trim() && uploadedFiles.length === 0 && !audioBlob) || !sessionId}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-24 flex items-center justify-center shadow-md"
+              className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-emerald-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-24 flex items-center justify-center shadow-md"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -691,13 +691,13 @@ export default function MultimodalAdvisorPage() {
           <div className="flex justify-between items-center mt-3">
             <p className="text-xs text-gray-500">
               {isRecording && (
-                <span className="text-red-600 font-medium flex items-center gap-1">
-                  <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+                <span className="text-red-400 font-medium flex items-center gap-1">
+                  <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
                   Recording... {formatDuration(recordingDuration)}
                 </span>
               )}
             </p>
-            <p className="text-xs text-gray-400">Conversation context is maintained</p>
+            <p className="text-xs text-gray-500">Conversation context is maintained</p>
           </div>
         </div>
       </div>

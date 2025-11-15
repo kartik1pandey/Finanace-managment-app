@@ -491,24 +491,24 @@ export default function ReceiptsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading receipts...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-emerald-500 mx-auto mb-4" />
+          <p className="text-gray-400">Loading receipts...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 bg-[#0a0a0a] min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent">
             Receipt Scanner
           </h1>
-          <p className="text-gray-600 mt-2">Upload receipts and track expenses with AI-powered OCR</p>
+          <p className="text-gray-400 mt-2">Upload receipts and track expenses with AI-powered OCR</p>
         </div>
         <Button
           onClick={() => setShowGallery(true)}
@@ -538,13 +538,13 @@ export default function ReceiptsPage() {
       )}
 
       {/* Upload Section */}
-      <Card className="border-2 border-dashed border-gray-300">
+      <Card className="border-2 border-dashed border-gray-700 bg-[#1a1a1a]">
         <CardHeader>
-          <CardTitle>Upload Receipt</CardTitle>
-          <CardDescription>Upload receipt images for automatic processing and expense tracking</CardDescription>
+          <CardTitle className="text-white">Upload Receipt</CardTitle>
+          <CardDescription className="text-gray-400">Upload receipt images for automatic processing and expense tracking</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-700 rounded-lg bg-[#0a0a0a] hover:bg-gray-900 transition-colors">
             <Upload className="h-12 w-12 text-gray-400 mb-4" />
             <label className="cursor-pointer">
               <input
@@ -588,24 +588,24 @@ export default function ReceiptsPage() {
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card className="bg-[#1a1a1a] border-gray-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Receipts</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400">Total Receipts</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{receipts.length}</div>
+            <div className="text-2xl font-bold text-white">{receipts.length}</div>
             <p className="text-xs text-gray-500 mt-1">
               {receipts.filter((r) => r.status === 'completed').length} processed successfully
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-[#1a1a1a] border-gray-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Spending</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400">Total Spending</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600 flex items-center">
+            <div className="text-2xl font-bold text-green-400 flex items-center">
               <IndianRupee className="h-5 w-5 mr-1" />
               {totalSpending.toLocaleString('en-IN')}
             </div>
@@ -615,12 +615,12 @@ export default function ReceiptsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-[#1a1a1a] border-gray-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Average Purchase</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400">Average Purchase</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600 flex items-center">
+            <div className="text-2xl font-bold text-blue-400 flex items-center">
               <IndianRupee className="h-5 w-5 mr-1" />
               {receipts.filter((r) => r.status === 'completed').length > 0
                 ? (totalSpending / receipts.filter((r) => r.status === 'completed').length).toLocaleString('en-IN', {
@@ -646,8 +646,8 @@ export default function ReceiptsPage() {
         {/* All Receipts Tab */}
         <TabsContent value="all" className="space-y-4">
           {receipts.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-gray-500">
+            <Card className="bg-[#1a1a1a] border-gray-800">
+              <CardContent className="py-12 text-center text-gray-400">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No receipts uploaded yet.</p>
                 <p className="text-sm mt-2">Start by uploading a receipt image above.</p>
@@ -656,7 +656,7 @@ export default function ReceiptsPage() {
           ) : (
             <div className="grid gap-4">
               {receipts.map((receipt) => (
-                <Card key={receipt.id} className="hover:shadow-md transition-shadow">
+                <Card key={receipt.id} className="bg-[#1a1a1a] border-gray-800 hover:shadow-md transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -688,24 +688,24 @@ export default function ReceiptsPage() {
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
-                          <p className="text-sm text-gray-600">Store</p>
-                          <p className="font-semibold text-sm">{receipt.extractedData.store_name || 'N/A'}</p>
+                          <p className="text-sm text-gray-400">Store</p>
+                          <p className="font-semibold text-sm text-white">{receipt.extractedData.store_name || 'N/A'}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Amount</p>
-                          <p className="font-semibold text-sm text-green-600 flex items-center">
+                          <p className="text-sm text-gray-400">Amount</p>
+                          <p className="font-semibold text-sm text-green-400 flex items-center">
                             <IndianRupee className="h-3 w-3 mr-1" />
                             {receipt.extractedData.total_amount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Date</p>
-                          <p className="font-semibold text-sm">
+                          <p className="text-sm text-gray-400">Date</p>
+                          <p className="font-semibold text-sm text-white">
                             {receipt.extractedData.date ? new Date(receipt.extractedData.date).toLocaleDateString('en-IN') : 'N/A'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Category</p>
+                          <p className="text-sm text-gray-400">Category</p>
                           <Badge variant="outline" className="text-xs capitalize">
                             {receipt.extractedData.category || 'Other'}
                           </Badge>
@@ -761,16 +761,16 @@ export default function ReceiptsPage() {
         {/* Analysis Tab */}
         <TabsContent value="analysis" className="space-y-4">
           {receipts.filter((r) => r.status === 'completed').length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-gray-500">
+            <Card className="bg-[#1a1a1a] border-gray-800">
+              <CardContent className="py-12 text-center text-gray-400">
                 <p>Upload and process receipts to see spending analysis.</p>
               </CardContent>
             </Card>
           ) : (
             <>
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
-                  <CardTitle>Spending by Category</CardTitle>
+                  <CardTitle className="text-white">Spending by Category</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -801,9 +801,9 @@ export default function ReceiptsPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
-                  <CardTitle>Spending Summary</CardTitle>
+                  <CardTitle className="text-white">Spending Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -851,10 +851,10 @@ export default function ReceiptsPage() {
       {/* Receipt Gallery Modal */}
       {showGallery && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-          <div className="w-full max-w-7xl max-h-[90vh] overflow-hidden bg-white dark:bg-slate-900 rounded-lg">
-            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b z-10 p-4">
+          <div className="w-full max-w-7xl max-h-[90vh] overflow-hidden bg-[#1a1a1a] rounded-lg">
+            <div className="sticky top-0 bg-[#1a1a1a] border-b border-gray-800 z-10 p-4">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Uploaded Receipts Gallery</h2>
+                <h2 className="text-2xl font-bold text-white">Uploaded Receipts Gallery</h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -863,14 +863,14 @@ export default function ReceiptsPage() {
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-400 mt-1">
                 {receipts.length} receipt{receipts.length !== 1 ? 's' : ''} uploaded
               </p>
             </div>
             
             <div className="overflow-y-auto max-h-[calc(90vh-100px)] p-6">
               {receipts.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-gray-400">
                   <ImageIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p>No receipts uploaded yet</p>
                 </div>
@@ -879,7 +879,7 @@ export default function ReceiptsPage() {
                   {receipts.map((receipt) => (
                     <div
                       key={receipt.id}
-                      className="group relative bg-white dark:bg-slate-800 rounded-lg border shadow-sm hover:shadow-lg transition-all overflow-hidden cursor-pointer"
+                      className="group relative bg-[#0a0a0a] rounded-lg border border-gray-800 shadow-sm hover:shadow-lg transition-all overflow-hidden cursor-pointer"
                       onClick={() => {
                         setSelectedReceipt(receipt);
                         setShowGallery(false);
@@ -958,10 +958,10 @@ export default function ReceiptsPage() {
       {/* Receipt Detail Modal */}
       {selectedReceipt && selectedReceipt.status === 'completed' && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
-            <CardHeader className="sticky top-0 bg-white border-b z-10">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-[#1a1a1a] border-gray-800">
+            <CardHeader className="sticky top-0 bg-[#1a1a1a] border-b border-gray-800 z-10">
               <div className="flex justify-between items-center">
-                <CardTitle>{selectedReceipt.filename}</CardTitle>
+                <CardTitle className="text-white">{selectedReceipt.filename}</CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -984,7 +984,7 @@ export default function ReceiptsPage() {
                 </div>
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-semibold mb-4">Extracted Details</h3>
+                    <h3 className="font-semibold mb-4 text-white">Extracted Details</h3>
                     <div className="space-y-3">
                       <div className="p-3 bg-gray-50 rounded-lg">
                         <p className="text-xs text-gray-600 uppercase tracking-wide">Store Name</p>
