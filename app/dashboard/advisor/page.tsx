@@ -1,34 +1,55 @@
 'use client'
+
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { LogOut, ArrowLeft } from 'lucide-react'
+import { Mic, MicOff, FileText, X, Paperclip, Send, Trash2 } from 'lucide-react'
 
 interface Message {
   id: string
   text: string
   sender: 'user' | 'bot'
   timestamp: Date
+  suggestions?: string[]
+  attachments?: Array<{ name: string; type: string; size: number }>
+}
+
+interface FinancialContext {
+  mcp_data_available: boolean
+  summary: {
+    net_worth: number
+    total_assets: number
+    total_liabilities: number
+  }
+  assets: Array<{ type: string; value: number }>
+  liabilities: Array<{ type: string; value: number }>
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND || 'http://localhost:8000'
+const MCP_BACKEND_URL = 'http://localhost:5001'
 
-export default function AdvisorPage() {
+export default function MultimodalAdvisorPage() {
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isFetchingData, setIsFetchingData] = useState(false)
   const [connectionError, setConnectionError] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [netWorth, setNetWorth] = useState<number>(0)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [financialContext, setFinancialContext] = useState<FinancialContext | null>(null)
 
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('mcp_session')
-    }
-    router.push('/')
-  }
+  // Audio recording states
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [recordingDuration, setRecordingDuration] = useState(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // File upload states
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -38,6 +59,67 @@ export default function AdvisorPage() {
     scrollToBottom()
   }, [messages])
 
+  // Fetch MCP financial data
+  const fetchMCPData = async (sid: string) => {
+    setIsFetchingData(true)
+    try {
+      const response = await fetch(`${MCP_BACKEND_URL}/mcp/networth?sessionId=${sid}`)
+      if (!response.ok) throw new Error('Failed to fetch MCP data')
+      
+      const data = await response.json()
+      if (data.result) {
+        const parsedContext = parseMCPData(data.result)
+        setFinancialContext(parsedContext)
+        return parsedContext
+      }
+      throw new Error('No data available')
+    } catch (error) {
+      console.error('❌ Error fetching MCP data:', error)
+      setConnectionError(true)
+      return null
+    } finally {
+      setIsFetchingData(false)
+    }
+  }
+
+  const parseMCPData = (result: any): FinancialContext => {
+    try {
+      const nwResponse = result.netWorthResponse || {}
+      const totalNetWorth = parseInt(nwResponse.totalNetWorthValue?.units || '0')
+      
+      const assets = (nwResponse.assetValues || []).map((asset: any) => ({
+        type: asset.netWorthAttribute?.replace('ASSET_TYPE_', '') || 'UNKNOWN',
+        value: parseInt(asset.value?.units || '0')
+      }))
+      
+      const liabilities = (nwResponse.liabilityValues || []).map((liability: any) => ({
+        type: liability.netWorthAttribute?.replace('LIABILITY_TYPE_', '') || 'UNKNOWN',
+        value: parseInt(liability.value?.units || '0')
+      }))
+      
+      const totalAssets = assets.reduce((sum: number, a: { type: string; value: number }) => sum + a.value, 0)
+      const totalLiabilities = liabilities.reduce((sum: number, l: { type: string; value: number }) => sum + l.value, 0)
+      
+      return {
+        mcp_data_available: true,
+        summary: {
+          net_worth: totalNetWorth,
+          total_assets: totalAssets,
+          total_liabilities: totalLiabilities
+        },
+        assets,
+        liabilities
+      }
+    } catch (error) {
+      return {
+        mcp_data_available: false,
+        summary: { net_worth: 0, total_assets: 0, total_liabilities: 0 },
+        assets: [],
+        liabilities: []
+      }
+    }
+  }
+
   useEffect(() => {
     const initializeAdvisor = async () => {
       if (typeof window !== 'undefined') {
@@ -46,57 +128,260 @@ export default function AdvisorPage() {
           const parsed = JSON.parse(savedSession)
           if (parsed.sessionId && parsed.isLoggedIn) {
             setSessionId(parsed.sessionId)
+            const context = await fetchMCPData(parsed.sessionId)
             
-            try {
-              const response = await fetch(`${API_BASE_URL}/api/financial/summary/1?session_id=${parsed.sessionId}`)
-              const data = await response.json()
-              
-              if (data.mcp_data_available) {
-                setNetWorth(data.summary.net_worth)
-                
-                const welcomeMessage: Message = {
-                  id: '1',
-                  text: `Hello! I'm your AI financial advisor with access to your real financial data:\n\n• Net Worth: ₹${data.summary.net_worth.toLocaleString('en-IN')}\n• Total Assets: ₹${data.assets?.reduce((s: number, a: any) => s + a.value, 0).toLocaleString('en-IN')}\n• Total Liabilities: ₹${data.liabilities?.reduce((s: number, l: any) => s + l.value, 0).toLocaleString('en-IN')}\n\nHow can I help you optimize your finances today?`,
-                  sender: 'bot',
-                  timestamp: new Date()
-                }
-                setMessages([welcomeMessage])
-              } else {
-                throw new Error('No MCP data')
-              }
-            } catch (error) {
-              const errorMsg: Message = {
+            if (context && context.mcp_data_available) {
+              const welcomeMessage: Message = {
                 id: '1',
-                text: "Please ensure your accounts are connected from the dashboard.",
+                text: `Hello! 👋 I'm your multimodal AI financial advisor.\n\n💰 Net Worth: ₹${context.summary.net_worth.toLocaleString('en-IN')}\n📊 Total Assets: ₹${context.summary.total_assets.toLocaleString('en-IN')}\n\n**I can help you with:**\n• 💬 Text conversations about your finances\n• 🎤 Voice queries (click mic icon)\n• 📊 CSV/Excel analysis (upload files)\n• 📄 Document analysis (bank statements, reports)\n\nHow can I assist you today?`,
                 sender: 'bot',
-                timestamp: new Date()
+                timestamp: new Date(),
+                suggestions: [
+                  "Analyze my portfolio",
+                  "Upload transaction CSV",
+                  "Voice query",
+                  "Review my investments"
+                ]
               }
-              setMessages([errorMsg])
+              setMessages([welcomeMessage])
             }
           } else {
-            router.push('/')
+            router.push('/dashboard')
           }
         } else {
-          router.push('/')
+          router.push('/dashboard')
         }
       }
     }
 
     initializeAdvisor()
-    checkBackendConnection()
   }, [])
 
-  const checkBackendConnection = async () => {
+  // Audio Recording Functions
+  const startRecording = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`)
-      setConnectionError(!response.ok)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      })
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+      setRecordingDuration(0)
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setAudioBlob(audioBlob)
+        stream.getTracks().forEach(track => track.stop())
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current)
+        }
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+
+      // Start duration timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1)
+      }, 1000)
     } catch (error) {
-      setConnectionError(true)
+      console.error('Error starting recording:', error)
+      alert('Unable to access microphone. Please check permissions.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const handleAudioSubmit = async () => {
+    if (!audioBlob || !sessionId) return
+
+    setIsLoading(true)
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: '🎤 [Voice message sent]',
+      sender: 'user',
+      timestamp: new Date(),
+      attachments: [{ name: 'voice-message.webm', type: 'audio/webm', size: audioBlob.size }]
+    }
+    setMessages(prev => [...prev, userMessage])
+
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'voice-message.webm')
+      formData.append('session_id', sessionId)
+
+      const response = await fetch(`${API_BASE_URL}/api/advisor/audio`, {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) throw new Error('Audio processing failed')
+
+      const data = await response.json()
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `**🎤 Transcription:** "${data.transcription}"\n\n**💬 Response:**\n${data.response}`,
+        sender: 'bot',
+        timestamp: new Date(),
+        suggestions: data.suggestions || []
+      }
+      setMessages(prev => [...prev, botMessage])
+      setAudioBlob(null)
+      setRecordingDuration(0)
+    } catch (error) {
+      console.error('Error processing audio:', error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Sorry, I had trouble processing your voice message. Please try again or type your question.',
+        sender: 'bot',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // File Upload Functions
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    const validFiles = files.filter(file => {
+      const validTypes = [
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/pdf',
+        'text/plain'
+      ]
+      return validTypes.includes(file.type) || file.name.endsWith('.csv')
+    })
+
+    if (validFiles.length !== files.length) {
+      alert('Some files were rejected. Only CSV, Excel, PDF, and TXT files are supported.')
+    }
+
+    setUploadedFiles(prev => [...prev, ...validFiles])
+  }
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleFileUpload = async () => {
+    if (uploadedFiles.length === 0 || !sessionId) return
+
+    setIsLoading(true)
+    const attachmentInfo = uploadedFiles.map(f => ({
+      name: f.name,
+      type: f.type,
+      size: f.size
+    }))
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: input || `📎 Uploaded ${uploadedFiles.length} file(s) for analysis`,
+      sender: 'user',
+      timestamp: new Date(),
+      attachments: attachmentInfo
+    }
+    setMessages(prev => [...prev, userMessage])
+
+    const currentInput = input
+    setInput('')
+
+    try {
+      const formData = new FormData()
+      uploadedFiles.forEach(file => formData.append('files', file))
+      formData.append('session_id', sessionId)
+      formData.append('message', currentInput || 'Please analyze these files and provide financial insights')
+
+      const response = await fetch(`${API_BASE_URL}/api/advisor/upload`, {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) throw new Error('File upload failed')
+
+      const data = await response.json()
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: data.response,
+        sender: 'bot',
+        timestamp: new Date(),
+        suggestions: data.suggestions || []
+      }
+      setMessages(prev => [...prev, botMessage])
+      setUploadedFiles([])
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Sorry, I had trouble processing your files. Please ensure they are valid CSV/Excel/PDF files and try again.',
+        sender: 'bot',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleClearHistory = async () => {
+    if (!sessionId) return
+    if (!confirm('Are you sure you want to clear the conversation history?')) return
+
+    try {
+      const formData = new FormData()
+      formData.append('session_id', sessionId)
+
+      await fetch(`${API_BASE_URL}/api/advisor/clear-history`, {
+        method: 'POST',
+        body: formData
+      })
+
+      setMessages([{
+        id: Date.now().toString(),
+        text: '🔄 Conversation history cleared. How can I help you today?',
+        sender: 'bot',
+        timestamp: new Date(),
+        suggestions: [
+          "Analyze my portfolio",
+          "Upload transaction CSV",
+          "Voice query",
+          "Review my investments"
+        ]
+      }])
+    } catch (error) {
+      console.error('Error clearing history:', error)
     }
   }
 
   const handleSend = async () => {
-    if (!input.trim()) return
+    // Handle file upload if files present
+    if (uploadedFiles.length > 0) {
+      await handleFileUpload()
+      return
+    }
+
+    // Handle audio if present
+    if (audioBlob) {
+      await handleAudioSubmit()
+      return
+    }
+
+    // Handle text message
+    if (!input.trim() || !sessionId) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -104,8 +389,9 @@ export default function AdvisorPage() {
       sender: 'user',
       timestamp: new Date()
     }
-
     setMessages(prev => [...prev, userMessage])
+
+    const currentInput = input
     setInput('')
     setIsLoading(true)
 
@@ -114,7 +400,7 @@ export default function AdvisorPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: input,
+          message: currentInput,
           user_id: 1,
           session_id: sessionId
         })
@@ -123,21 +409,19 @@ export default function AdvisorPage() {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
 
       const data = await response.json()
-      
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: data.response,
         sender: 'bot',
-        timestamp: new Date()
+        timestamp: new Date(),
+        suggestions: data.suggestions || []
       }
-
       setMessages(prev => [...prev, botMessage])
-      
     } catch (error) {
-      setConnectionError(true)
+      console.error('Error:', error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: `Connection error. Please try again.`,
+        text: 'Connection error. Please check if the backend is running and try again.',
         sender: 'bot',
         timestamp: new Date()
       }
@@ -154,87 +438,130 @@ export default function AdvisorPage() {
     }
   }
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
   return (
-    <div className="p-6 h-full flex flex-col bg-gray-50 min-h-screen">
-      <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
+    <div className="p-6 h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+      <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
           <div className="flex justify-between items-start">
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Financial Advisor</h1>
-                <p className="text-gray-600">Powered by real-time financial data</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+                Multimodal AI Advisor
+              </h1>
+              <p className="text-gray-600 flex items-center gap-2">
+                <span>💬 Chat</span>
+                <span>•</span>
+                <span>🎤 Voice</span>
+                <span>•</span>
+                <span>📁 Files</span>
+                <span>•</span>
+                <span className="text-green-600 font-medium">Context Aware</span>
+              </p>
             </div>
-            <Button onClick={handleLogout} variant="destructive" size="sm">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
+            <Button 
+              onClick={handleClearHistory} 
+              variant="outline" 
+              size="sm" 
+              className="hover:bg-gray-100"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear History
             </Button>
           </div>
+
+          {financialContext && financialContext.mcp_data_available && (
+            <div className="mt-4 grid grid-cols-3 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                <p className="text-xs text-gray-600 mb-1">Net Worth</p>
+                <p className="text-xl font-bold text-blue-700">
+                  ₹{financialContext.summary.net_worth.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                <p className="text-xs text-gray-600 mb-1">Total Assets</p>
+                <p className="text-xl font-bold text-green-700">
+                  ₹{financialContext.summary.total_assets.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
+                <p className="text-xs text-gray-600 mb-1">Total Liabilities</p>
+                <p className="text-xl font-bold text-orange-700">
+                  ₹{financialContext.summary.total_liabilities.toLocaleString('en-IN')}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Quick Questions */}
-        {sessionId && netWorth > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Questions:</h3>
-            <div className="flex flex-wrap gap-2">
-              {[
-                "Analyze my net worth",
-                "Review my assets allocation",
-                "Investment recommendations",
-                "Debt management strategy"
-              ].map((question, index) => (
-                <button
-                  key={index}
-                  onClick={() => { setInput(question); setTimeout(handleSend, 100); }}
-                  disabled={isLoading}
-                  className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50"
-                >
-                  {question}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        
         {/* Chat Container */}
-        <div className="flex-1 bg-white rounded-lg shadow-sm border p-4 mb-4 overflow-y-auto flex flex-col">
+        <div className="flex-1 bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-4 overflow-y-auto flex flex-col max-h-[calc(100vh-400px)]">
           <div className="space-y-4 flex-1">
             {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs lg:max-w-2xl px-4 py-3 rounded-lg ${
-                    message.sender === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-900 border'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                  <p className={`text-xs mt-2 ${
-                    message.sender === 'user' ? 'text-blue-200' : 'text-gray-500'
+              <div key={message.id}>
+                <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-xs lg:max-w-3xl px-5 py-3 rounded-2xl ${
+                    message.sender === 'user' 
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md' 
+                      : 'bg-gray-50 text-gray-900 border border-gray-200 shadow-sm'
                   }`}>
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.text}</p>
+                    {message.attachments && message.attachments.length > 0 && (
+                      <div className="mt-3 space-y-1 pt-2 border-t border-white/20">
+                        {message.attachments.map((file, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs opacity-90">
+                            <FileText className="h-3 w-3" />
+                            <span>{file.name} ({formatFileSize(file.size)})</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p className={`text-xs mt-2 ${
+                      message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'
+                    }`}>
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
+
+                {message.sender === 'bot' && message.suggestions && message.suggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3 ml-2">
+                    {message.suggestions.map((suggestion, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setInput(suggestion)}
+                        disabled={isLoading}
+                        className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 hover:bg-gray-50 hover:border-blue-300 hover:text-blue-600 transition-all disabled:opacity-50 shadow-sm"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
+
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-900 px-4 py-3 rounded-lg border">
+                <div className="bg-gray-50 px-5 py-3 rounded-2xl border border-gray-200 shadow-sm">
                   <div className="flex items-center space-x-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="text-sm text-gray-600">Analyzing...</span>
+                    <span className="text-sm text-gray-600">Processing...</span>
                   </div>
                 </div>
               </div>
@@ -243,29 +570,134 @@ export default function AdvisorPage() {
           </div>
         </div>
 
+        {/* File Upload Preview */}
+        {uploadedFiles.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-gray-700">📎 Attached Files ({uploadedFiles.length})</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setUploadedFiles([])} 
+                className="text-red-600 hover:bg-red-50"
+              >
+                Clear All
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {uploadedFiles.map((file, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">{file.name}</span>
+                      <span className="text-xs text-gray-500 ml-2">({formatFileSize(file.size)})</span>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => removeFile(idx)} 
+                    className="text-red-600 hover:bg-red-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Audio Recording Preview */}
+        {audioBlob && (
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 mb-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-full">
+                  <Mic className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-gray-900">Voice message ready</span>
+                  <span className="text-xs text-gray-600 block">({formatFileSize(audioBlob.size)})</span>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setAudioBlob(null)} 
+                className="text-red-600 hover:bg-red-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Input Area */}
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <div className="flex space-x-4">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+          <div className="flex space-x-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".csv,.xlsx,.xls,.pdf,.txt"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              title="Upload files (CSV, Excel, PDF, TXT)"
+              className="hover:bg-blue-50 hover:border-blue-300 transition-all"
+            >
+              <Paperclip className="h-5 w-5 text-gray-600" />
+            </Button>
+            <Button
+              variant={isRecording ? "destructive" : "outline"}
+              size="icon"
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isLoading}
+              title={isRecording ? "Stop recording" : "Start voice recording"}
+              className={isRecording ? "animate-pulse" : "hover:bg-red-50 hover:border-red-300 transition-all"}
+            >
+              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5 text-gray-600" />}
+            </Button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask about your finances..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              placeholder="Type, speak, or upload files..."
+              className="flex-1 px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-all"
               disabled={isLoading || !sessionId}
             />
-            <button
+            <Button
               onClick={handleSend}
-              disabled={isLoading || !input.trim() || !sessionId}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 min-w-20 flex items-center justify-center"
+              disabled={isLoading || (!input.trim() && uploadedFiles.length === 0 && !audioBlob) || !sessionId}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-24 flex items-center justify-center shadow-md"
             >
               {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Send'
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send
+                </>
               )}
-            </button>
+            </Button>
+          </div>
+          <div className="flex justify-between items-center mt-3">
+            <p className="text-xs text-gray-500">
+              {isRecording && (
+                <span className="text-red-600 font-medium flex items-center gap-1">
+                  <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+                  Recording... {formatDuration(recordingDuration)}
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-gray-400">Conversation context is maintained</p>
           </div>
         </div>
       </div>

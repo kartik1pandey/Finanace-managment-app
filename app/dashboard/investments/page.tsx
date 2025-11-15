@@ -76,7 +76,7 @@ export default function InvestmentsPage() {
           <TabsTrigger value="explorer">Stock Explorer</TabsTrigger>
           <TabsTrigger value="optimizer">Optimizer</TabsTrigger>
           <TabsTrigger value="mutual-funds">Mutual Funds</TabsTrigger>
-          <TabsTrigger value="analysis">AI Analysis</TabsTrigger> {/* ← Changed */}
+
         </TabsList>
 
         <TabsContent value="explorer">
@@ -91,13 +91,6 @@ export default function InvestmentsPage() {
           {loading ? <div>Loading...</div> : <MutualFundsList funds={mutualFunds} />}
         </TabsContent>
 
-        <TabsContent value="analysis">
-          {loading ? (
-            <div className="text-center py-12">Loading portfolio data...</div>
-          ) : (
-            <AIAnalysis accounts={accounts} />
-          )}
-        </TabsContent>
 
       </Tabs>
     </div>

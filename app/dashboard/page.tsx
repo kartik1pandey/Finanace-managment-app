@@ -22,7 +22,6 @@ import {
   MessageSquare,
   BarChart3,
   CreditCard,
-  LogOut,
 } from "lucide-react";
 import {
   PieChart as RechartsPie,
@@ -100,17 +99,6 @@ export default function IntegratedDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
 
   const BACKEND = process.env.NEXT_PUBLIC_BACKEND || "http://localhost:8000";
-
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("mcp_session");
-    }
-    setSession(null);
-    setFinancialData(null);
-    setAccounts([]);
-    setMutualFunds([]);
-    router.push("/");
-  };
 
   const fetchAllData = async (sessionId: string) => {
     setLoading(true);
@@ -258,30 +246,25 @@ export default function IntegratedDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              LUMEN Dashboard
+              Dashboard Overview
             </h1>
             <p className="text-gray-600 mt-2">Real-time Financial Intelligence</p>
           </div>
           <div className="flex gap-3">
             {session && (
-              <>
-                <Button
-                  onClick={() => session.sessionId && fetchAllData(session.sessionId)}
-                  disabled={loading}
-                  variant="outline"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                  )}
-                  Refresh
-                </Button>
-                <Button onClick={handleLogout} variant="destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Button>
-              </>
+              <Button
+                onClick={() => session.sessionId && fetchAllData(session.sessionId)}
+                disabled={loading}
+                variant="outline"
+                className="shadow-sm"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Refresh Data
+              </Button>
             )}
           </div>
         </div>
@@ -426,7 +409,7 @@ export default function IntegratedDashboard() {
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
-                                label={({ type, percent }) =>
+                                label={({ type, percent }: { type: string; percent: number }) =>
                                   `${type.replace(/ASSET_TYPE_|_/g, " ")} (${
                                     (percent * 100).toFixed(0)
                                   }%)`

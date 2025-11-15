@@ -1,6 +1,7 @@
 'use client';
 
-import { Menu, X, Home, BarChart3, TrendingUp, CreditCard, MessageSquare, FileText, Calculator } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Home, BarChart3, TrendingUp, CreditCard, MessageSquare, FileText, Calculator, LogOut, User, Sparkles } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 const menuItems = [
@@ -13,58 +14,107 @@ const menuItems = [
   { id: '/dashboard/advisor', label: 'AI Advisor', icon: MessageSquare },
 ];
 
-export default function DashboardSidebar({ isMobileOpen, onClose }: { isMobileOpen: boolean; onClose: () => void }) {
+export default function DashboardSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [userName, setUserName] = useState('User');
+  const [userEmail, setUserEmail] = useState('');
+
+  useEffect(() => {
+    // Get user info from localStorage or session
+    if (typeof window !== 'undefined') {
+      const savedSession = localStorage.getItem('mcp_session');
+      if (savedSession) {
+        try {
+          const parsed = JSON.parse(savedSession);
+          // You can customize this based on your session structure
+          setUserName(parsed.userName || 'User');
+          setUserEmail(parsed.userEmail || '');
+        } catch (e) {
+          console.error('Error parsing session:', e);
+        }
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('mcp_session');
+    }
+    router.push('/');
+  };
 
   return (
-    <>
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      <div
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white shadow-lg border-r h-full transform transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
-      >
-        <div className="p-6 border-b flex justify-between items-center">
+    <div className="fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl flex flex-col">
+      {/* Logo Section */}
+      <div className="p-6 border-b border-slate-700/50">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <Sparkles className="h-6 w-6 text-white" />
+          </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800">LUMEN</h2>
-            <p className="text-sm text-gray-600">Financial Dashboard</p>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              LUMEN
+            </h2>
+            <p className="text-xs text-slate-400">Financial Intelligence</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Menu */}
+      <nav className="flex-1 p-4 overflow-y-auto">
+        <ul className="space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.id;
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => router.push(item.id)}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30'
+                      : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} />
+                  <span className="font-medium">{item.label}</span>
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* User Profile & Logout Section */}
+      <div className="p-4 border-t border-slate-700/50 bg-slate-900/50">
+        {/* User Info */}
+        <div className="mb-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <User className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{userName}</p>
+              {userEmail && (
+                <p className="text-xs text-slate-400 truncate">{userEmail}</p>
+              )}
+            </div>
           </div>
         </div>
 
-        <nav className="p-4">
-          <ul className="space-y-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.id; // Define isActive here
-              return (
-                <li key={item.id}>
-                  <button
-                    onClick={() => {
-                      router.push(item.id);
-                      if (typeof onClose === 'function') {
-                        onClose();
-                      }
-                    }}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl bg-red-600/10 text-red-400 hover:bg-red-600/20 hover:text-red-300 transition-all duration-200 border border-red-600/20 hover:border-red-600/30 group"
+        >
+          <LogOut className="h-4 w-4 group-hover:scale-110 transition-transform" />
+          <span className="font-medium">Logout</span>
+        </button>
       </div>
-    </>
+    </div>
   );
 }

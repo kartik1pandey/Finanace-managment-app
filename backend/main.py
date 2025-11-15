@@ -1,20 +1,22 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 import uvicorn
 import httpx
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import shutil
 from datetime import datetime, timedelta
 import ta  # technical-analysis library
 from groq import Groq
 import os
 
+from gemini_multimodal_service import gemini_multimodal
 # Install required packages:
 # pip install yfinance ta-lib pandas-ta
 
@@ -360,52 +362,221 @@ async def get_mutual_funds(user_id: int, session_id: Optional[str] = None):
 
 @app.post("/api/advisor/chat")
 async def chat_with_advisor(request: ChatRequest):
-    """Enhanced AI financial advisor with real MCP data context"""
-    print(f"📨 Received chat request: {request.message} from user {request.user_id}")
+    """
+    AI financial advisor using OpenRouter with conversation history
+    """
+    print(f"📨 Received chat request: {request.message}")
+    print(f"🔑 Session ID: {request.session_id}")
     
     if not request.message.strip():
         return {
             "response": "Please enter a message to get financial advice.",
             "suggestions": [
                 "Analyze my net worth",
-                "Review my mutual fund portfolio", 
-                "Check my bank accounts",
-                "Investment recommendations"
+                "Review my assets",
+                "Check my investments",
+                "Debt management tips"
             ]
         }
     
-    if not groq_advisor:
-        return {
-            "response": "Financial advisor service is currently initializing. Please try again in a moment.",
-            "suggestions": ["Retry conversation", "Check financial dashboard"],
-            "error": "Service not available"
-        }
+    if not openrouter_advisor or not openrouter_advisor.client:
+        print("⚠ OpenRouter client not available, using mock responses")
     
     try:
-        # Fetch real financial data if session_id provided
-        financial_context = None
-        if request.session_id:
-            try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    response = await client.get(
-                        f"http://localhost:8000/api/financial/summary/{request.user_id}",
-                        params={"session_id": request.session_id}
-                    )
-                    financial_context = response.json()
-            except Exception as e:
-                print(f"⚠️ Could not fetch financial context: {e}")
-        
-        advice_result = await groq_advisor.get_financial_advice(
-            request.message, 
-            request.user_id,
-            financial_context
+        # Call the OpenRouter advisor service
+        result = await openrouter_advisor.answer_user_query(
+            question=request.message,
+            session_id=request.session_id
         )
-        return advice_result
+        
+        # Also store in Gemini history for multimodal continuity
+        if request.session_id:
+            gemini_multimodal.add_to_history(
+                request.session_id,
+                "user",
+                request.message
+            )
+            gemini_multimodal.add_to_history(
+                request.session_id,
+                "assistant",
+                result.get("response", "")
+            )
+        
+        print(f"✅ Generated response")
+        print(f"📊 Context used: {result.get('context_used', {})}")
+        
+        return result
+        
     except Exception as e:
         print(f"❌ Error in advisor chat: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
         raise HTTPException(
             status_code=500, 
-            detail="Financial advisor service is temporarily unavailable. Please try again in a moment."
+            detail=f"Financial advisor service error: {str(e)}"
+        )
+
+@app.post("/api/advisor/upload")
+async def upload_files_endpoint(
+    files: List[UploadFile] = File(...),
+    session_id: str = Form(...),
+    message: str = Form("")
+):
+    """
+    Handle multimodal file uploads (CSV, Excel, PDF, Text)
+    Uses Google Gemini for analysis with conversation context
+    """
+    print(f"📁 Received {len(files)} file(s) for analysis")
+    print(f"📝 User message: {message}")
+    print(f"🔑 Session ID: {session_id}")
+    
+    try:
+        processed_files = []
+        
+        # Process each file
+        for file in files:
+            content = await file.read()
+            filename = file.filename
+            
+            print(f"📄 Processing: {filename}")
+            
+            # Process based on file type
+            if filename.endswith('.csv'):
+                result = gemini_multimodal.process_csv_file(content, filename)
+            elif filename.endswith(('.xlsx', '.xls')):
+                result = gemini_multimodal.process_excel_file(content, filename)
+            elif filename.endswith('.pdf'):
+                result = gemini_multimodal.process_pdf_file(content, filename)
+            elif filename.endswith('.txt'):
+                result = gemini_multimodal.process_text_file(content, filename)
+            else:
+                result = {
+                    "success": False,
+                    "error": f"Unsupported file type: {filename}",
+                    "filename": filename
+                }
+            
+            processed_files.append(result)
+            print(f"✅ Processed: {filename} - Success: {result.get('success', False)}")
+        
+        # Check if any files were successfully processed
+        successful_files = [f for f in processed_files if f.get("success")]
+        
+        if not successful_files:
+            error_msg = "Failed to process any files. "
+            error_msg += " ".join([f.get("error", "") for f in processed_files if not f.get("success")])
+            return {
+                "response": f"❌ {error_msg}\n\nPlease ensure your files are valid CSV, Excel, PDF, or text files.",
+                "suggestions": ["Try different files", "Check file format"],
+                "processed_files": 0
+            }
+        
+        # Fetch MCP context
+        mcp_context = None
+        if session_id:
+            try:
+                mcp_data = await openrouter_advisor.fetch_mcp_data(session_id)
+                if mcp_data:
+                    mcp_context = openrouter_advisor.create_context(mcp_data)
+            except Exception as e:
+                print(f"⚠  Could not fetch MCP data: {e}")
+        
+        # Analyze with Gemini (includes conversation history)
+        analysis_result = await gemini_multimodal.analyze_files_with_context(
+            processed_files=successful_files,
+            user_message=message or "Please analyze these files and provide financial insights",
+            session_id=session_id,
+            mcp_context=mcp_context
+        )
+        
+        return {
+            "response": analysis_result["response"],
+            "suggestions": analysis_result["suggestions"],
+            "processed_files": len(successful_files),
+            "file_details": [f.get("filename") for f in successful_files]
+        }
+        
+    except Exception as e:
+        print(f"❌ Upload endpoint error: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"File processing error: {str(e)}"
+        )
+
+@app.post("/api/advisor/audio")
+async def process_audio_endpoint(
+    audio: UploadFile = File(...),
+    session_id: str = Form(...)
+):
+    """
+    Handle audio input with Gemini transcription and conversation context
+    """
+    print(f"🎤 Received audio file: {audio.filename}")
+    
+    try:
+        # Save audio temporarily
+        temp_dir = "/tmp"
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, f"audio_{session_id}_{audio.filename}")
+        
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(audio.file, buffer)
+        
+        print(f"💾 Saved audio to: {temp_path}")
+        
+        # Fetch MCP context
+        mcp_context = None
+        if session_id:
+            try:
+                mcp_data = await openrouter_advisor.fetch_mcp_data(session_id)
+                if mcp_data:
+                    mcp_context = openrouter_advisor.create_context(mcp_data)
+            except Exception as e:
+                print(f"⚠  Could not fetch MCP data: {e}")
+        
+        # Process with Gemini (includes conversation history)
+        result = await gemini_multimodal.transcribe_and_respond(
+            audio_path=temp_path,
+            session_id=session_id,
+            mcp_context=mcp_context
+        )
+        
+        # Clean up
+        try:
+            os.remove(temp_path)
+            print(f"🗑  Cleaned up temp file")
+        except:
+            pass
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ Audio processing error: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Audio processing error: {str(e)}"
+        )
+
+@app.post("/api/advisor/clear-history")
+async def clear_conversation_history(session_id: str = Form(...)):
+    """Clear conversation history for a session"""
+    try:
+        gemini_multimodal.clear_history(session_id)
+        return {
+            "success": True,
+            "message": "Conversation history cleared"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error clearing history: {str(e)}"
         )
 
 # ============= EXISTING ENDPOINTS (Loans & Investments) =============
@@ -745,6 +916,24 @@ Provide:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error optimizing portfolio: {str(e)}")
 
+
+# ============= CONVERSATION HISTORY ENDPOINT =============
+
+@app.post("/api/advisor/clear-history")
+async def clear_conversation_history(session_id: str = Form(...)):
+    """Clear conversation history for a session"""
+    try:
+        from gemini_multimodal_service import gemini_multimodal
+        gemini_multimodal.clear_history(session_id)
+        return {
+            "success": True,
+            "message": "Conversation history cleared"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error clearing history: {str(e)}"
+        )
 
 # ============= HEALTH CHECK =============
 
