@@ -426,19 +426,3 @@ For issues, questions, or suggestions:
 - Contact the development team
 
 ---
-
-## 🚧 Roadmap
-
-- [ ] Mobile app (React Native)
-- [ ] Tax planning module
-- [ ] Expense categorization with ML
-- [ ] Budget recommendations
-- [ ] Goal-based financial planning
-- [ ] Multi-currency support
-- [ ] Export reports (PDF/Excel)
-- [ ] Email notifications
-- [ ] Social features (compare with peers)
-
----
-
-**Built with ❤️ for better financial intelligence**
