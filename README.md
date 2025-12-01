@@ -138,6 +138,12 @@ Follow these steps **in order** to run the complete application:
 The MCP server handles financial account connections and data aggregation.
 
 ```bash
+#install Go
+https://go.dev/dl/
+
+#test Go
+go version
+
 # Navigate to MCP server directory
 cd fi-mcp-dev
 
