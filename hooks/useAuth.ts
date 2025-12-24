@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 
 interface AuthContextType {
@@ -30,6 +30,12 @@ export function useAuthProvider() {
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
+    // Skip auth setup if Supabase is not properly configured (build time)
+    if (!isSupabaseConfigured()) {
+      setLoading(false)
+      return
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)

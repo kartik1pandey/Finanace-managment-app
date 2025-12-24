@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase, isSupabaseConfigured } from './supabase'
 
 export async function upsertUser(email: string, name?: string) {
   const { data, error } = await supabase.from('users').upsert({ email, name }, { onConflict: 'email' }).select().single()
@@ -228,6 +228,12 @@ export async function uploadReceiptImage(userEmail: string, file: File): Promise
 // ============================================
 
 export async function saveFavoriteStocks(userEmail: string, favoriteStocks: string[]) {
+  // Skip if Supabase is not configured (build time)
+  if (!isSupabaseConfigured()) {
+    console.warn('Supabase not configured, skipping save')
+    return
+  }
+
   // Get the authenticated user's ID from Supabase auth
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('User not authenticated')
@@ -243,6 +249,12 @@ export async function saveFavoriteStocks(userEmail: string, favoriteStocks: stri
 }
 
 export async function loadFavoriteStocks(userEmail: string): Promise<string[]> {
+  // Skip if Supabase is not configured (build time)
+  if (!isSupabaseConfigured()) {
+    console.warn('Supabase not configured, returning default favorites')
+    return ['AAPL', 'GOOGL']
+  }
+
   // Get the authenticated user's ID from Supabase auth
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return ['AAPL', 'GOOGL'] // Default favorites for unauthenticated users
