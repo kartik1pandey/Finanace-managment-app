@@ -10,9 +10,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, TrendingDown, AlertCircle, Loader2, Search, Plus, X, Star, Heart, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { createAuthHeaders } from '@/lib/auth-client'
+import { apiConfig } from '@/lib/env'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND || 'http://localhost:8000'
-const MCP_BASE_URL = process.env.NEXT_PUBLIC_MCP_SERVER || 'http://localhost:5001'
+const API_BASE_URL = apiConfig.backend
+const MCP_BASE_URL = apiConfig.mcpServer
 
 interface StockData {
   symbol: string
