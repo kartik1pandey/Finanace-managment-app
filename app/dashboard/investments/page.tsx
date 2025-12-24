@@ -19,6 +19,8 @@ export default function InvestmentsPage() {
   const [activeTab, setActiveTab] = useState('explorer')
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState("");
+  const [favorites, setFavorites] = useState([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

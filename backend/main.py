@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Form, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from datetime import datetime
 import uvicorn
@@ -15,10 +16,69 @@ from datetime import datetime, timedelta
 import ta  # technical-analysis library
 from groq import Groq
 import os
+import jwt
+from supabase import create_client, Client
 
 from gemini_multimodal_service import gemini_multimodal
 # Install required packages:
-# pip install yfinance ta-lib pandas-ta
+# pip install yfinance ta-lib pandas-ta supabase
+
+# Initialize Supabase client
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+
+# Security
+security = HTTPBearer()
+
+class AuthUser(BaseModel):
+    id: str
+    email: str
+    user_metadata: dict = {}
+
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> AuthUser:
+    """Verify JWT token and return user info"""
+    try:
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Supabase not configured")
+        
+        token = credentials.credentials
+        
+        # Verify token with Supabase
+        response = supabase.auth.get_user(token)
+        
+        if not response.user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        return AuthUser(
+            id=response.user.id,
+            email=response.user.email,
+            user_metadata=response.user.user_metadata or {}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
+
+async def get_optional_user(authorization: Optional[str] = Header(None)) -> Optional[AuthUser]:
+    """Get user from token if provided, otherwise return None"""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    
+    try:
+        token = authorization.split(" ")[1]
+        if not supabase:
+            return None
+            
+        response = supabase.auth.get_user(token)
+        if not response.user:
+            return None
+            
+        return AuthUser(
+            id=response.user.id,
+            email=response.user.email,
+            user_metadata=response.user.user_metadata or {}
+        )
+    except:
+        return None
 
 class StockAnalysisRequest(BaseModel):
     symbol: str
@@ -38,17 +98,30 @@ except ImportError as e:
 
 app = FastAPI(title="ArthSahay Financial Advisor", version="2.0.0")
 
-# Enhanced CORS configuration
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Enhanced CORS configuration for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000", 
+        "http://localhost:3001",
+        "https://*.vercel.app",
+        "https://*.netlify.app",
+        os.getenv("FRONTEND_URL", "")
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# MCP Backend URL
-MCP_BACKEND_URL = "http://localhost:5001"
+# MCP Backend URL - use environment variable in production
+MCP_BACKEND_URL = os.getenv("MCP_SERVER_URL", "http://localhost:5001")
 
 # Pydantic models
 class ChatRequest(BaseModel):
@@ -379,14 +452,15 @@ async def chat_with_advisor(request: ChatRequest):
             ]
         }
     
-    if not openrouter_advisor or not openrouter_advisor.client:
-        print("⚠ OpenRouter client not available, using mock responses")
+    if not groq_advisor or not groq_advisor.client:
+        print("⚠ Groq client not available, using mock responses")
     
     try:
-        # Call the OpenRouter advisor service
-        result = await openrouter_advisor.answer_user_query(
-            question=request.message,
-            session_id=request.session_id
+        # Call the Groq advisor service
+        result = await groq_advisor.get_financial_advice(
+            user_message=request.message,
+            user_id=request.user_id,
+            financial_context=None
         )
         
         # Also store in Gemini history for multimodal continuity
@@ -476,9 +550,9 @@ async def upload_files_endpoint(
         mcp_context = None
         if session_id:
             try:
-                mcp_data = await openrouter_advisor.fetch_mcp_data(session_id)
-                if mcp_data:
-                    mcp_context = openrouter_advisor.create_context(mcp_data)
+                # Fetch financial data for context
+                financial_data = await get_financial_summary(1, session_id)
+                mcp_context = financial_data
             except Exception as e:
                 print(f"⚠  Could not fetch MCP data: {e}")
         
@@ -532,9 +606,9 @@ async def process_audio_endpoint(
         mcp_context = None
         if session_id:
             try:
-                mcp_data = await openrouter_advisor.fetch_mcp_data(session_id)
-                if mcp_data:
-                    mcp_context = openrouter_advisor.create_context(mcp_data)
+                # Fetch financial data for context
+                financial_data = await get_financial_summary(1, session_id)
+                mcp_context = financial_data
             except Exception as e:
                 print(f"⚠  Could not fetch MCP data: {e}")
         
@@ -615,6 +689,60 @@ def get_stock_analysis(symbol: str):
 def get_market_overview():
     """Get market overview"""
     return investment_service.get_market_overview()
+
+@app.post("/api/investments/stocks/batch")
+async def get_multiple_stocks(symbols: List[str]):
+    """
+    Fetch basic data for multiple stocks at once
+    """
+    try:
+        results = {}
+        
+        for symbol in symbols:
+            try:
+                # Create ticker object
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period="2d")
+                
+                if not hist.empty:
+                    current_price = hist['Close'].iloc[-1]
+                    previous_close = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
+                    change = current_price - previous_close
+                    change_percent = (change / previous_close) * 100 if previous_close != 0 else 0
+                    
+                    # Get basic info
+                    info = ticker.info
+                    
+                    results[symbol] = {
+                        "symbol": symbol,
+                        "price": round(current_price, 2),
+                        "change": round(change, 2),
+                        "changePercent": round(change_percent, 2),
+                        "marketCap": format_market_cap(info.get('marketCap', 0)),
+                        "success": True
+                    }
+                else:
+                    results[symbol] = {
+                        "symbol": symbol,
+                        "success": False,
+                        "error": "No data available"
+                    }
+                    
+            except Exception as e:
+                results[symbol] = {
+                    "symbol": symbol,
+                    "success": False,
+                    "error": str(e)
+                }
+        
+        return {
+            "success": True,
+            "data": results,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching batch stock data: {str(e)}")
 
 @app.get("/api/investments/stock/{symbol}")
 async def get_stock_data(symbol: str):
@@ -916,6 +1044,95 @@ Provide:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error optimizing portfolio: {str(e)}")
 
+
+# ============= FAVORITE STOCKS ENDPOINTS =============
+
+class FavoriteStocksRequest(BaseModel):
+    stocks: List[str]
+
+@app.get("/api/investments/favorites")
+async def get_favorite_stocks(user: AuthUser = Depends(verify_token)):
+    """Get user's favorite stocks"""
+    try:
+        # Import here to avoid circular imports
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+        
+        from lib.dataStore import loadFavoriteStocks
+        favorites = await loadFavoriteStocks(user.email)
+        return {
+            "success": True,
+            "favorites": favorites,
+            "user_id": user.id
+        }
+    except Exception as e:
+        print(f"❌ Error loading favorite stocks: {str(e)}")
+        return {
+            "success": False,
+            "favorites": ["AAPL", "GOOGL"],  # Default fallback
+            "error": str(e)
+        }
+
+@app.post("/api/investments/favorites")
+async def save_favorite_stocks(request: FavoriteStocksRequest, user: AuthUser = Depends(verify_token)):
+    """Save user's favorite stocks"""
+    try:
+        # Import here to avoid circular imports
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+        
+        from lib.dataStore import saveFavoriteStocks
+        await saveFavoriteStocks(user.email, request.stocks)
+        return {
+            "success": True,
+            "message": "Favorite stocks saved successfully",
+            "user_id": user.id
+        }
+    except Exception as e:
+        print(f"❌ Error saving favorite stocks: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save favorite stocks: {str(e)}"
+        )
+
+# ============= RECEIPTS ENDPOINTS =============
+
+class ReceiptSaveRequest(BaseModel):
+    filename: str
+    extracted_data: dict
+    status: str
+    upload_date: str
+
+@app.post("/api/receipts/save")
+async def save_receipt_endpoint(request: ReceiptSaveRequest):
+    """Save receipt data to backend storage"""
+    try:
+        # For now, just return success since we don't have a database setup
+        # In a real implementation, you would save to your database here
+        
+        receipt_id = f"receipt_{int(datetime.now().timestamp())}"
+        
+        return {
+            "success": True,
+            "receipt_id": receipt_id,
+            "message": "Receipt saved successfully",
+            "data": {
+                "id": receipt_id,
+                "filename": request.filename,
+                "extracted_data": request.extracted_data,
+                "status": request.status,
+                "upload_date": request.upload_date
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ Error saving receipt: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save receipt: {str(e)}"
+        )
 
 # ============= CONVERSATION HISTORY ENDPOINT =============
 

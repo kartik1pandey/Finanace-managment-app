@@ -108,7 +108,7 @@ export default function PortfolioOverview({ data }: PortfolioOverviewProps) {
               <p className="text-sm text-green-600 mt-1">RELIANCE.NS</p>
             </div>
             
-            <div className="p-4 bg-red-950/30 border border-red-800 rounded-lg">lg">
+            <div className="p-4 bg-red-950/30 border border-red-800 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-red-400">Underperformer</span>
                 <span className="font-bold text-red-500">-5.2%</span>
@@ -116,7 +116,7 @@ export default function PortfolioOverview({ data }: PortfolioOverviewProps) {
               <p className="text-sm text-red-600 mt-1">TCS.NS</p>
             </div>
             
-            <div className="p-4 bg-blue-950/30 border border-blue-800 rounded-lg">lg">
+            <div className="p-4 bg-blue-950/30 border border-blue-800 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-blue-400">Risk Level</span>
                 <span className="font-bold text-blue-500">Moderate</span>
@@ -124,7 +124,7 @@ export default function PortfolioOverview({ data }: PortfolioOverviewProps) {
               <p className="text-sm text-blue-600 mt-1">Well-diversified portfolio</p>
             </div>
             
-            <div className="p-4 bg-purple-950/30 border border-purple-800 rounded-lg">lg">
+            <div className="p-4 bg-purple-950/30 border border-purple-800 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-purple-400">Market Beat</span>
                 <span className="font-bold text-purple-500">+4.7%</span>

@@ -77,6 +77,16 @@ export interface ReceiptData {
 export async function saveReceipt(userEmail: string, receipt: ReceiptData) {
   console.log('[saveReceipt] Starting save for:', userEmail)
   
+  // First, ensure the user exists (create if not exists)
+  try {
+    await upsertUser(userEmail)
+    console.log('[saveReceipt] User ensured to exist')
+  } catch (upsertError) {
+    console.error('[saveReceipt] Failed to ensure user exists:', upsertError)
+    throw new Error(`Failed to create/find user: ${upsertError}`)
+  }
+  
+  // Now get the user
   const { data: user, error: userError } = await supabase.from('users').select('id').eq('email', userEmail).single()
   
   if (userError) {
@@ -122,6 +132,14 @@ export async function saveReceipt(userEmail: string, receipt: ReceiptData) {
 }
 
 export async function loadReceipts(userEmail: string) {
+  // First, ensure the user exists (create if not exists)
+  try {
+    await upsertUser(userEmail)
+  } catch (upsertError) {
+    console.error('[loadReceipts] Failed to ensure user exists:', upsertError)
+    return []
+  }
+  
   const { data: user } = await supabase.from('users').select('id').eq('email', userEmail).single()
   if (!user) return []
 
@@ -153,6 +171,15 @@ export async function deleteReceipt(userEmail: string, receiptId: string) {
 export async function uploadReceiptImage(userEmail: string, file: File): Promise<{ path: string; url: string }> {
   console.log('[uploadReceiptImage] Starting upload for:', userEmail)
   console.log('[uploadReceiptImage] WORKAROUND: Converting to base64 instead of storage')
+  
+  // First, ensure the user exists (create if not exists)
+  try {
+    await upsertUser(userEmail)
+    console.log('[uploadReceiptImage] User ensured to exist')
+  } catch (upsertError) {
+    console.error('[uploadReceiptImage] Failed to ensure user exists:', upsertError)
+    throw new Error(`Failed to create/find user: ${upsertError}`)
+  }
   
   const { data: user, error: userError } = await supabase.from('users').select('id').eq('email', userEmail).single()
   
@@ -194,4 +221,38 @@ export async function uploadReceiptImage(userEmail: string, file: File): Promise
     
     reader.readAsDataURL(file)
   })
+}
+
+// ============================================
+// FAVORITE STOCKS FUNCTIONS
+// ============================================
+
+export async function saveFavoriteStocks(userEmail: string, favoriteStocks: string[]) {
+  // Get the authenticated user's ID from Supabase auth
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('User not authenticated')
+  
+  const { error } = await supabase
+    .from('favorite_stocks')
+    .upsert(
+      { user_id: user.id, stocks: favoriteStocks, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    )
+  
+  if (error) throw error
+}
+
+export async function loadFavoriteStocks(userEmail: string): Promise<string[]> {
+  // Get the authenticated user's ID from Supabase auth
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return ['AAPL', 'GOOGL'] // Default favorites for unauthenticated users
+  
+  const { data, error } = await supabase
+    .from('favorite_stocks')
+    .select('stocks')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  
+  if (error) throw error
+  return data?.stocks || ['AAPL', 'GOOGL'] // Default favorites if none found
 }

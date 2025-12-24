@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 export default function ClientLayout({
   children,
@@ -12,7 +13,7 @@ export default function ClientLayout({
 
   useEffect(() => {
     // Public routes that don't require authentication
-    const publicRoutes = ['/login', '/signup', '/password-reset'];
+    const publicRoutes = ['/login', '/signup', '/password-reset', '/auth'];
     
     // Check if current route is public
     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
@@ -21,10 +22,14 @@ export default function ClientLayout({
     if (!isPublicRoute && pathname !== '/') {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (!token) {
-        router.push('/login');
+        router.push('/auth/signin');
       }
     }
   }, [pathname, router]);
 
-  return <>{children}</>;
+  return (
+    <AuthProvider>
+      {children}
+    </AuthProvider>
+  );
 }
