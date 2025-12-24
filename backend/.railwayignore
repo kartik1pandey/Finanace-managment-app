@@ -1,0 +1,12 @@
+# Ignore Node.js files to prevent detection
+package.json
+package-lock.json
+node_modules/
+.next/
+
+# Ignore other unnecessary files
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
