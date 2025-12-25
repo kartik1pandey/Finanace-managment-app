@@ -21,6 +21,16 @@ async function callToolAndUnwrap(sessionId, toolName, args = {}) {
   return resp;
 }
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    service: "mcp-backend-proxy",
+    mcp_url: MCP_URL
+  });
+});
+
 /**
  * Initiate: generate sessionId and try to fetch networth to get login_url if required
  */
@@ -84,5 +94,6 @@ app.post("/mcp/call", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+  console.log(`🚀 MCP Backend Proxy running on http://localhost:${PORT}`);
+  console.log(`📡 Connected to MCP Server: ${MCP_URL}`);
 });
