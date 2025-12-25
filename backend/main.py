@@ -14,6 +14,9 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 
+# MCP Configuration
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:5001")
+
 app = FastAPI(title="ArthSahay Financial Advisor", version="2.0.0")
 
 # Security
@@ -227,7 +230,7 @@ async def save_favorite_stocks(request: dict):
 # Financial summary endpoint
 @app.get("/api/financial/summary/{user_id}")
 async def get_financial_summary(user_id: int):
-    """Get comprehensive financial summary with mock data"""
+    """Get comprehensive financial summary with MCP data if available"""
     
     financial_data = {
         "summary": {
@@ -268,6 +271,44 @@ async def get_financial_summary(user_id: int):
             ]
         }
     }
+    
+    # Try to fetch real MCP data
+    try:
+        if MCP_SERVER_URL and MCP_SERVER_URL != "http://localhost:5001":
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Try to initiate MCP session
+                mcp_response = await client.get(f"{MCP_SERVER_URL}/mcp/initiate")
+                mcp_data = mcp_response.json()
+                
+                if mcp_data.get("sessionId") and not mcp_data.get("login_required"):
+                    # Try to get networth data
+                    session_id = mcp_data["sessionId"]
+                    networth_response = await client.get(
+                        f"{MCP_SERVER_URL}/mcp/networth",
+                        params={"sessionId": session_id}
+                    )
+                    networth_data = networth_response.json()
+                    
+                    if networth_data.get("result"):
+                        financial_data["mcp_data_available"] = True
+                        financial_data["mcp_session_id"] = session_id
+                        financial_data["raw_mcp_data"] = networth_data
+                        
+                        # Parse MCP data if available
+                        result = networth_data["result"]
+                        if result.get("netWorthResponse"):
+                            nw_response = result["netWorthResponse"]
+                            if nw_response.get("totalNetWorthValue"):
+                                net_worth_value = nw_response["totalNetWorthValue"]
+                                financial_data["summary"]["net_worth"] = int(net_worth_value.get("units", 0))
+                    
+                elif mcp_data.get("login_required"):
+                    financial_data["mcp_login_required"] = True
+                    financial_data["mcp_login_url"] = mcp_data.get("login_url")
+                    
+    except Exception as e:
+        print(f"⚠️ MCP data fetch failed: {e}")
+        # Continue with mock data
     
     return financial_data
 
@@ -367,6 +408,7 @@ if __name__ == "__main__":
     print("   - http://localhost:8000")
     print("   - http://localhost:8000/health")
     print("   - http://localhost:8000/api/financial/summary/1")
+    print(f"📡 MCP Server: {MCP_SERVER_URL}")
     
     uvicorn.run(
         app, 
@@ -374,3 +416,50 @@ if __name__ == "__main__":
         port=8000,
         log_level="info"
     )
+
+# MCP Proxy Endpoints
+@app.get("/api/mcp/initiate")
+async def mcp_initiate():
+    """Initiate MCP session"""
+    try:
+        if not MCP_SERVER_URL or MCP_SERVER_URL == "http://localhost:5001":
+            return {"error": "MCP server not configured", "mock": True}
+            
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(f"{MCP_SERVER_URL}/mcp/initiate")
+            return response.json()
+    except Exception as e:
+        return {"error": f"MCP initiate failed: {str(e)}", "mock": True}
+
+@app.get("/api/mcp/networth")
+async def mcp_networth(session_id: str):
+    """Get networth data from MCP"""
+    try:
+        if not MCP_SERVER_URL or MCP_SERVER_URL == "http://localhost:5001":
+            return {"error": "MCP server not configured", "mock": True}
+            
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{MCP_SERVER_URL}/mcp/networth",
+                params={"sessionId": session_id}
+            )
+            return response.json()
+    except Exception as e:
+        return {"error": f"MCP networth failed: {str(e)}", "mock": True}
+
+@app.post("/api/mcp/call")
+async def mcp_call_tool(request: dict, session_id: str):
+    """Generic MCP tool caller"""
+    try:
+        if not MCP_SERVER_URL or MCP_SERVER_URL == "http://localhost:5001":
+            return {"error": "MCP server not configured", "mock": True}
+            
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{MCP_SERVER_URL}/mcp/call",
+                params={"sessionId": session_id},
+                json=request
+            )
+            return response.json()
+    except Exception as e:
+        return {"error": f"MCP tool call failed: {str(e)}", "mock": True}

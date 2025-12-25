@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: mcp-backend-proxy
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    branch: Final
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 5001
+      - key: NODE_ENV
+        value: production
+      - key: MCP_URL
+        value: https://fi-mcp-server.onrender.com/mcp/stream
+    autoDeploy: true

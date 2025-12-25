@@ -28,12 +28,12 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/static ./static 2>/dev/null || true
 COPY --from=builder /app/test_data_dir ./test_data_dir 2>/dev/null || true
 
-# Expose port
-EXPOSE 8080
+# Expose port (Render uses PORT environment variable)
+EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:$PORT/health || exit 1
 
 # Run the binary
 CMD ["./main"]

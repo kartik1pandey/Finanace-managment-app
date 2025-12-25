@@ -11,12 +11,12 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
-# Expose port
-EXPOSE 5001
+# Expose port (Render uses PORT environment variable)
+EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:5001/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:$PORT/health || exit 1
 
 # Start the application
 CMD ["npm", "start"]
