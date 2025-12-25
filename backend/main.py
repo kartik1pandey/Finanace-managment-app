@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # MCP Configuration
-MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:5001")
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "https://finanace-managment-app-2.onrender.com")
 
 app = FastAPI(title="ArthSahay Financial Advisor", version="2.0.0")
 
