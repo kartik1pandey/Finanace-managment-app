@@ -24,6 +24,10 @@ WORKDIR /root/
 # Copy the binary from builder
 COPY --from=builder /app/main .
 
+# Copy static files and test data
+COPY --from=builder /app/static ./static
+COPY --from=builder /app/test_data_dir ./test_data_dir
+
 # Expose port (Render uses PORT environment variable)
 EXPOSE $PORT
 
