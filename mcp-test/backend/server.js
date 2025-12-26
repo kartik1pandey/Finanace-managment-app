@@ -132,7 +132,8 @@ app.post("/mcp/call", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 MCP Backend Proxy running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 MCP Backend Proxy running on http://0.0.0.0:${PORT}`);
   console.log(`📡 Connected to MCP Server: ${MCP_URL}`);
+  console.log(`🌐 Base URL: ${MCP_BASE_URL}`);
 });
