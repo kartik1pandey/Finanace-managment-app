@@ -54,8 +54,13 @@ app.get("/mcp/initiate", async (req, res) => {
     const resp = await client.callTool("fetch_net_worth", {});
     
     // Fix the login URL to use production URL instead of localhost
-    if (resp.login_url && resp.login_url.includes("localhost:8080")) {
-      resp.login_url = resp.login_url.replace("http://localhost:8080", MCP_BASE_URL);
+    if (resp.login_url) {
+      // Replace any localhost URLs with production URL
+      resp.login_url = resp.login_url
+        .replace("http://localhost:8080", MCP_BASE_URL)
+        .replace("http://localhost:5001", MCP_BASE_URL)
+        .replace("https://localhost:8080", MCP_BASE_URL)
+        .replace("https://localhost:5001", MCP_BASE_URL);
     }
     
     return res.json({ sessionId, ...resp });
@@ -84,8 +89,12 @@ app.get("/mcp/login-status", async (req, res) => {
     const resp = await callToolAndUnwrap(sessionId, "fetch_net_worth");
     
     // Fix any localhost URLs in the response
-    if (resp.login_url && resp.login_url.includes("localhost:8080")) {
-      resp.login_url = resp.login_url.replace("http://localhost:8080", MCP_BASE_URL);
+    if (resp.login_url) {
+      resp.login_url = resp.login_url
+        .replace("http://localhost:8080", MCP_BASE_URL)
+        .replace("http://localhost:5001", MCP_BASE_URL)
+        .replace("https://localhost:8080", MCP_BASE_URL)
+        .replace("https://localhost:5001", MCP_BASE_URL);
     }
     
     return res.json(resp);
@@ -105,8 +114,12 @@ app.get("/mcp/networth", async (req, res) => {
     const resp = await callToolAndUnwrap(sessionId, "fetch_net_worth");
     
     // Fix any localhost URLs in the response
-    if (resp.login_url && resp.login_url.includes("localhost:8080")) {
-      resp.login_url = resp.login_url.replace("http://localhost:8080", MCP_BASE_URL);
+    if (resp.login_url) {
+      resp.login_url = resp.login_url
+        .replace("http://localhost:8080", MCP_BASE_URL)
+        .replace("http://localhost:5001", MCP_BASE_URL)
+        .replace("https://localhost:8080", MCP_BASE_URL)
+        .replace("https://localhost:5001", MCP_BASE_URL);
     }
     
     return res.json(resp);
