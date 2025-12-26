@@ -22,6 +22,24 @@ async function callToolAndUnwrap(sessionId, toolName, args = {}) {
   return resp;
 }
 
+// Helper function to fix localhost URLs in responses
+function fixLocalhostUrls(obj) {
+  if (typeof obj === 'string') {
+    // Replace any localhost URL with any port with the production base URL
+    return obj
+      .replace(/http:\/\/localhost:\d+/g, MCP_BASE_URL)
+      .replace(/https:\/\/localhost:\d+/g, MCP_BASE_URL);
+  } else if (typeof obj === 'object' && obj !== null) {
+    // Recursively fix URLs in objects
+    const fixed = {};
+    for (const [key, value] of Object.entries(obj)) {
+      fixed[key] = fixLocalhostUrls(value);
+    }
+    return fixed;
+  }
+  return obj;
+}
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({
@@ -53,17 +71,10 @@ app.get("/mcp/initiate", async (req, res) => {
 
     const resp = await client.callTool("fetch_net_worth", {});
     
-    // Fix the login URL to use production URL instead of localhost
-    if (resp.login_url) {
-      // Replace any localhost URLs with production URL
-      resp.login_url = resp.login_url
-        .replace("http://localhost:8080", MCP_BASE_URL)
-        .replace("http://localhost:5001", MCP_BASE_URL)
-        .replace("https://localhost:8080", MCP_BASE_URL)
-        .replace("https://localhost:5001", MCP_BASE_URL);
-    }
+    // Fix all localhost URLs in the response
+    const fixedResp = fixLocalhostUrls(resp);
     
-    return res.json({ sessionId, ...resp });
+    return res.json({ sessionId, ...fixedResp });
   } catch (err) {
     // Fallback to mock mode if MCP server is unavailable
     const client = newClient();
@@ -88,16 +99,10 @@ app.get("/mcp/login-status", async (req, res) => {
   try {
     const resp = await callToolAndUnwrap(sessionId, "fetch_net_worth");
     
-    // Fix any localhost URLs in the response
-    if (resp.login_url) {
-      resp.login_url = resp.login_url
-        .replace("http://localhost:8080", MCP_BASE_URL)
-        .replace("http://localhost:5001", MCP_BASE_URL)
-        .replace("https://localhost:8080", MCP_BASE_URL)
-        .replace("https://localhost:5001", MCP_BASE_URL);
-    }
+    // Fix all localhost URLs in the response
+    const fixedResp = fixLocalhostUrls(resp);
     
-    return res.json(resp);
+    return res.json(fixedResp);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -113,16 +118,10 @@ app.get("/mcp/networth", async (req, res) => {
   try {
     const resp = await callToolAndUnwrap(sessionId, "fetch_net_worth");
     
-    // Fix any localhost URLs in the response
-    if (resp.login_url) {
-      resp.login_url = resp.login_url
-        .replace("http://localhost:8080", MCP_BASE_URL)
-        .replace("http://localhost:5001", MCP_BASE_URL)
-        .replace("https://localhost:8080", MCP_BASE_URL)
-        .replace("https://localhost:5001", MCP_BASE_URL);
-    }
+    // Fix all localhost URLs in the response
+    const fixedResp = fixLocalhostUrls(resp);
     
-    return res.json(resp);
+    return res.json(fixedResp);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
