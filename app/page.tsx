@@ -64,7 +64,9 @@ export default function HomePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND}/api/mcp/login-status?session_id=${sessionId}`);
+      // Call MCP proxy directly for login status
+      const MCP_SERVER = process.env.NEXT_PUBLIC_MCP_SERVER || "https://finanace-managment-app-2.onrender.com";
+      const res = await fetch(`${MCP_SERVER}/mcp/login-status?sessionId=${sessionId}`);
       const data = await res.json();
 
       if (!data.login_required && data.result) {
