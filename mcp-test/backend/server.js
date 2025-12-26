@@ -9,6 +9,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 5001;
 const MCP_URL = process.env.MCP_URL || "http://localhost:8080/mcp/stream";
+const MCP_BASE_URL = process.env.MCP_BASE_URL || "https://finanace-managment-app-1.onrender.com";
 
 function newClient(sessionId) {
   return new MCPClient({ url: MCP_URL, sessionId });
@@ -27,7 +28,8 @@ app.get("/health", (req, res) => {
     status: "healthy",
     timestamp: new Date().toISOString(),
     service: "mcp-backend-proxy",
-    mcp_url: MCP_URL
+    mcp_url: MCP_URL,
+    mock_mode: process.env.MOCK_MODE === "true"
   });
 });
 
@@ -39,10 +41,35 @@ app.get("/mcp/initiate", async (req, res) => {
     const client = newClient(); // generates new sessionId
     const sessionId = client.getSessionId();
 
+    // If in mock mode, return mock response with production URLs
+    if (process.env.MOCK_MODE === "true") {
+      return res.json({
+        sessionId,
+        login_required: true,
+        login_url: `${MCP_BASE_URL}/mockWebPage?sessionId=${sessionId}`,
+        mock: true
+      });
+    }
+
     const resp = await client.callTool("fetch_net_worth", {});
+    
+    // Fix the login URL to use production URL instead of localhost
+    if (resp.login_url && resp.login_url.includes("localhost:8080")) {
+      resp.login_url = resp.login_url.replace("http://localhost:8080", MCP_BASE_URL);
+    }
+    
     return res.json({ sessionId, ...resp });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    // Fallback to mock mode if MCP server is unavailable
+    const client = newClient();
+    const sessionId = client.getSessionId();
+    return res.json({
+      sessionId,
+      login_required: true,
+      login_url: `${MCP_BASE_URL}/mockWebPage?sessionId=${sessionId}`,
+      mock: true,
+      error: err.message
+    });
   }
 });
 
@@ -55,6 +82,12 @@ app.get("/mcp/login-status", async (req, res) => {
 
   try {
     const resp = await callToolAndUnwrap(sessionId, "fetch_net_worth");
+    
+    // Fix any localhost URLs in the response
+    if (resp.login_url && resp.login_url.includes("localhost:8080")) {
+      resp.login_url = resp.login_url.replace("http://localhost:8080", MCP_BASE_URL);
+    }
+    
     return res.json(resp);
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -70,6 +103,12 @@ app.get("/mcp/networth", async (req, res) => {
 
   try {
     const resp = await callToolAndUnwrap(sessionId, "fetch_net_worth");
+    
+    // Fix any localhost URLs in the response
+    if (resp.login_url && resp.login_url.includes("localhost:8080")) {
+      resp.login_url = resp.login_url.replace("http://localhost:8080", MCP_BASE_URL);
+    }
+    
     return res.json(resp);
   } catch (err) {
     return res.status(500).json({ error: err.message });
