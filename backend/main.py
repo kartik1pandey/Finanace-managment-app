@@ -431,6 +431,22 @@ async def mcp_initiate():
     except Exception as e:
         return {"error": f"MCP initiate failed: {str(e)}", "mock": True}
 
+@app.get("/api/mcp/login-status")
+async def mcp_login_status(session_id: str):
+    """Check MCP login status"""
+    try:
+        if not MCP_SERVER_URL or MCP_SERVER_URL == "http://localhost:5001":
+            return {"error": "MCP server not configured", "mock": True}
+            
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{MCP_SERVER_URL}/mcp/login-status",
+                params={"sessionId": session_id}
+            )
+            return response.json()
+    except Exception as e:
+        return {"error": f"MCP login status failed: {str(e)}", "mock": True}
+
 @app.get("/api/mcp/networth")
 async def mcp_networth(session_id: str):
     """Get networth data from MCP"""
