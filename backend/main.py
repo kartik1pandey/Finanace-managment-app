@@ -229,7 +229,7 @@ async def save_favorite_stocks(request: dict):
 
 # Financial summary endpoint
 @app.get("/api/financial/summary/{user_id}")
-async def get_financial_summary(user_id: int):
+async def get_financial_summary(user_id: int, session_id: str = None):
     """Get comprehensive financial summary with MCP data if available"""
     
     financial_data = {
@@ -272,39 +272,33 @@ async def get_financial_summary(user_id: int):
         }
     }
     
-    # Try to fetch real MCP data
+    # Try to fetch real MCP data using provided session_id
     try:
-        if MCP_SERVER_URL and MCP_SERVER_URL != "http://localhost:5001":
+        if MCP_SERVER_URL and MCP_SERVER_URL != "http://localhost:5001" and session_id:
             async with httpx.AsyncClient(timeout=30.0) as client:
-                # Try to initiate MCP session
-                mcp_response = await client.get(f"{MCP_SERVER_URL}/mcp/initiate")
-                mcp_data = mcp_response.json()
+                # Use the provided session_id to get networth data directly
+                networth_response = await client.get(
+                    f"{MCP_SERVER_URL}/mcp/networth",
+                    params={"sessionId": session_id}
+                )
+                networth_data = networth_response.json()
                 
-                if mcp_data.get("sessionId") and not mcp_data.get("login_required"):
-                    # Try to get networth data
-                    session_id = mcp_data["sessionId"]
-                    networth_response = await client.get(
-                        f"{MCP_SERVER_URL}/mcp/networth",
-                        params={"sessionId": session_id}
-                    )
-                    networth_data = networth_response.json()
+                if networth_data.get("result") and not networth_data.get("login_required"):
+                    financial_data["mcp_data_available"] = True
+                    financial_data["mcp_session_id"] = session_id
+                    financial_data["raw_mcp_data"] = networth_data
                     
-                    if networth_data.get("result"):
-                        financial_data["mcp_data_available"] = True
-                        financial_data["mcp_session_id"] = session_id
-                        financial_data["raw_mcp_data"] = networth_data
-                        
-                        # Parse MCP data if available
-                        result = networth_data["result"]
-                        if result.get("netWorthResponse"):
-                            nw_response = result["netWorthResponse"]
-                            if nw_response.get("totalNetWorthValue"):
-                                net_worth_value = nw_response["totalNetWorthValue"]
-                                financial_data["summary"]["net_worth"] = int(net_worth_value.get("units", 0))
-                    
-                elif mcp_data.get("login_required"):
+                    # Parse MCP data if available
+                    result = networth_data["result"]
+                    if result.get("netWorthResponse"):
+                        nw_response = result["netWorthResponse"]
+                        if nw_response.get("totalNetWorthValue"):
+                            net_worth_value = nw_response["totalNetWorthValue"]
+                            financial_data["summary"]["net_worth"] = int(net_worth_value.get("units", 0))
+                
+                elif networth_data.get("login_required"):
                     financial_data["mcp_login_required"] = True
-                    financial_data["mcp_login_url"] = mcp_data.get("login_url")
+                    financial_data["mcp_login_url"] = networth_data.get("login_url")
                     
     except Exception as e:
         print(f"⚠️ MCP data fetch failed: {e}")
